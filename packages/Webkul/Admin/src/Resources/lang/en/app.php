@@ -1831,6 +1831,8 @@ return [
         'mass-update-success' => 'Emails updated successfully.',
         'delete-success'      => 'Email deleted successfully.',
         'delete-failed'       => 'Email can not be deleted.',
+        'invalid-route'       => 'Invalid route for mail.',
+        'unauthorized'        => 'This action is unauthorized.',
 
         'view' => [
             'title'                      => 'Mails',

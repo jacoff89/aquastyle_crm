@@ -1678,6 +1678,8 @@ return [
         'mass-update-success' => 'ایمیل‌ها با موفقیت به‌روزرسانی شدند.',
         'delete-success'      => 'ایمیل با موفقیت حذف شد.',
         'delete-failed'       => 'ایمیل قابل حذف نیست.',
+        'invalid-route'       => 'مسیر نامعتبر برای ایمیل.',
+        'unauthorized'        => 'این عمل مجاز نیست.',
         'view'                => [
             'title'                      => 'ایمیل‌ها',
             'subject'                    => ':subject',
