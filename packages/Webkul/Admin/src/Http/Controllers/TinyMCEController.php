@@ -5,12 +5,9 @@ namespace Webkul\Admin\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Webkul\Core\Traits\Sanitizer;
 
 class TinyMCEController extends Controller
 {
-    use Sanitizer;
-
     /**
      * Storage folder path.
      */
