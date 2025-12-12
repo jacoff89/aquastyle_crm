@@ -39,14 +39,12 @@ class SanitizeInput
     /**
      * Handle an incoming request.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure  $next
      * @return mixed
      */
     public function handle(Request $request, Closure $next)
     {
-        if ($request->isMethod('post') 
-            || $request->isMethod('put') 
+        if ($request->isMethod('post')
+            || $request->isMethod('put')
             || $request->isMethod('patch')) {
             $this->htmlFields = SecurityConfig::$HTML_FIELDS;
 
@@ -60,13 +58,8 @@ class SanitizeInput
         return $next($request);
     }
 
-
     /**
      * Recursively sanitize an array of data
-     *
-     * @param  array  $data
-     * @param  string  $parentKey
-     * @return array
      */
     protected function sanitizeArray(array $data, string $parentKey = ''): array
     {
@@ -89,10 +82,6 @@ class SanitizeInput
 
     /**
      * Sanitize a string value
-     *
-     * @param  string  $value
-     * @param  string  $key
-     * @return string
      */
     protected function sanitizeString(string $value, string $key): string
     {
@@ -108,9 +97,6 @@ class SanitizeInput
 
     /**
      * Remove dangerous content from string
-     *
-     * @param  string  $value
-     * @return string
      */
     protected function removeDangerousContent(string $value): string
     {
@@ -122,7 +108,7 @@ class SanitizeInput
         }
 
         $decoded = html_entity_decode($value, ENT_QUOTES, 'UTF-8');
-        
+
         foreach (SecurityConfig::$DANGEROUS_PATTERNS as $pattern) {
             if (preg_match($pattern, $decoded)) {
                 $value = strip_tags($value);
@@ -140,9 +126,6 @@ class SanitizeInput
 
     /**
      * Sanitize HTML content (for rich text fields)
-     *
-     * @param  string  $value
-     * @return string
      */
     protected function sanitizeHtml(string $value): string
     {
@@ -152,7 +135,7 @@ class SanitizeInput
             $config->set('CSS.AllowedProperties', 'color,background-color,font-size,font-weight,text-align,margin,padding,border');
             $config->set('AutoFormat.RemoveEmpty', true);
             $config->set('AutoFormat.AutoParagraph', false);
-            
+
             $purifier = new \HTMLPurifier($config);
 
             return $purifier->purify($value);

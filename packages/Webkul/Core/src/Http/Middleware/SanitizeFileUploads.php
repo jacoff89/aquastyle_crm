@@ -3,10 +3,10 @@
 namespace Webkul\Core\Http\Middleware;
 
 use Closure;
-use Exception;
 use enshrined\svgSanitize\data\AllowedAttributes;
 use enshrined\svgSanitize\data\AllowedTags;
 use enshrined\svgSanitize\Sanitizer as MainSanitizer;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Webkul\Core\Enum\SecurityConfig;
@@ -33,14 +33,12 @@ class SanitizeFileUploads
     /**
      * Handle an incoming request.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure  $next
      * @return mixed
      */
     public function handle(Request $request, Closure $next)
     {
-        if ($request->isMethod('post') 
-            || $request->isMethod('put') 
+        if ($request->isMethod('post')
+            || $request->isMethod('put')
             || $request->isMethod('patch')) {
             $this->allowedExtensions = SecurityConfig::$ALLOWED_EXTENSIONS;
 
@@ -52,9 +50,6 @@ class SanitizeFileUploads
 
     /**
      * Validate all uploaded files in the request
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return void
      */
     protected function validateAllFiles(Request $request): void
     {
@@ -75,10 +70,6 @@ class SanitizeFileUploads
 
     /**
      * Validate a single uploaded file
-     *
-     * @param  \Illuminate\Http\UploadedFile  $file
-     * @param  string  $fieldName
-     * @return void
      */
     protected function validateFile(UploadedFile $file, string $fieldName): void
     {
@@ -89,7 +80,7 @@ class SanitizeFileUploads
          * Check for path traversal attempts
          */
         if (preg_match('/\.\.|\/|\\\\/', $originalName)) {
-            abort(400, "File name contains invalid characters.");
+            abort(400, 'File name contains invalid characters.');
         }
 
         /**
@@ -116,9 +107,6 @@ class SanitizeFileUploads
 
     /**
      * Check if extension is an image type
-     *
-     * @param  string  $extension
-     * @return bool
      */
     protected function isImageExtension(string $extension): bool
     {
@@ -127,10 +115,6 @@ class SanitizeFileUploads
 
     /**
      * Validate image file
-     *
-     * @param  \Illuminate\Http\UploadedFile  $file
-     * @param  string  $extension
-     * @return void
      */
     protected function validateImageFile(UploadedFile $file, string $extension): void
     {
@@ -143,29 +127,25 @@ class SanitizeFileUploads
 
         try {
             $imageInfo = @getimagesize($file->getRealPath());
-            
+
             if ($imageInfo === false) {
-                abort(400, "File is not a valid image.");
+                abort(400, 'File is not a valid image.');
             }
 
             // Validate MIME type matches extension via centralized config
             if (isset(SecurityConfig::$VALID_IMAGE_MIME_TYPES[$extension])) {
                 if (! in_array($imageInfo['mime'], SecurityConfig::$VALID_IMAGE_MIME_TYPES[$extension])) {
-                    abort(400, "File extension does not match file content.");
+                    abort(400, 'File extension does not match file content.');
                 }
             }
         } catch (\Exception $e) {
-            abort(400, "Unable to validate image file.");
+            abort(400, 'Unable to validate image file.');
         }
     }
 
     /**
      * Sanitize SVG file to remove potentially malicious content.
      * Integrated from Sanitizer trait for unified file handling.
-     *
-     * @param  \Illuminate\Http\UploadedFile  $file
-     * @param  string  $fieldName
-     * @return void
      */
     protected function sanitizeSvgFile(UploadedFile $file, string $fieldName): void
     {
@@ -213,7 +193,7 @@ class SanitizeFileUploads
         } catch (Exception $e) {
             report($e->getMessage());
 
-            abort(400, "Unable to sanitize SVG file.");
+            abort(400, 'Unable to sanitize SVG file.');
         }
     }
 }
