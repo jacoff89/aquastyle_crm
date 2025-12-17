@@ -3,12 +3,12 @@
 namespace Webkul\Core\Http\Middleware;
 
 use Closure;
-use enshrined\svgSanitize\data\AllowedAttributes;
-use enshrined\svgSanitize\data\AllowedTags;
-use enshrined\svgSanitize\Sanitizer as MainSanitizer;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use enshrined\svgSanitize\data\AllowedAttributes;
+use enshrined\svgSanitize\data\AllowedTags;
+use enshrined\svgSanitize\Sanitizer as MainSanitizer;
 use Webkul\Core\Enum\SecurityConfig;
 
 /**
@@ -84,17 +84,10 @@ class SanitizeFileUploads
         }
 
         /**
-         * Check if extension is in allowed list
-         */
-        if (! in_array($extension, $this->allowedExtensions)) {
-            abort(400, "File type '.{$extension}' is not allowed.");
-        }
-
-        /**
          * Additional validation for image files
          */
-        if ($this->isImageExtension($extension)) {
-            $this->validateImageFile($file, $extension);
+        if (! $this->isImageExtension($extension)) {
+            abort(400, 'File extension does not match file content.');
         }
 
         /**
@@ -110,37 +103,7 @@ class SanitizeFileUploads
      */
     protected function isImageExtension(string $extension): bool
     {
-        return in_array($extension, SecurityConfig::$ALLOWED_EXTENSIONS) && array_key_exists($extension, SecurityConfig::$VALID_IMAGE_MIME_TYPES);
-    }
-
-    /**
-     * Validate image file
-     */
-    protected function validateImageFile(UploadedFile $file, string $extension): void
-    {
-        /**
-         * Skip SVG validation as it's handled by Sanitizer trait
-         */
-        if ($extension === 'svg') {
-            return;
-        }
-
-        try {
-            $imageInfo = @getimagesize($file->getRealPath());
-
-            if ($imageInfo === false) {
-                abort(400, 'File is not a valid image.');
-            }
-
-            // Validate MIME type matches extension via centralized config
-            if (isset(SecurityConfig::$VALID_IMAGE_MIME_TYPES[$extension])) {
-                if (! in_array($imageInfo['mime'], SecurityConfig::$VALID_IMAGE_MIME_TYPES[$extension])) {
-                    abort(400, 'File extension does not match file content.');
-                }
-            }
-        } catch (\Exception $e) {
-            abort(400, 'Unable to validate image file.');
-        }
+        return in_array($extension, SecurityConfig::$ALLOWED_EXTENSIONS);
     }
 
     /**
