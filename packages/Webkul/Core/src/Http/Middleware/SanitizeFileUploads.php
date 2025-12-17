@@ -3,12 +3,12 @@
 namespace Webkul\Core\Http\Middleware;
 
 use Closure;
-use Exception;
-use Illuminate\Http\Request;
-use Illuminate\Http\UploadedFile;
 use enshrined\svgSanitize\data\AllowedAttributes;
 use enshrined\svgSanitize\data\AllowedTags;
 use enshrined\svgSanitize\Sanitizer as MainSanitizer;
+use Exception;
+use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Webkul\Core\Enum\SecurityConfig;
 
 /**
