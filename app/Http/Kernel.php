@@ -21,7 +21,6 @@ class Kernel extends HttpKernel
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
         \App\Http\Middleware\TrimStrings::class,
         \Webkul\Installer\Http\Middleware\CanInstall::class,
-        \Webkul\Core\Http\Middleware\SanitizeFileUploads::class,
     ];
 
     /**
