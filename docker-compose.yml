@@ -36,7 +36,7 @@ services:
     volumes:
       - crm-db-data:/var/lib/mysql
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: ${DB_DATABASE}
       MYSQL_USER: ${DB_USERNAME}
       MYSQL_PASSWORD: ${DB_PASSWORD}
@@ -67,4 +67,4 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.10.0.0/16
+        - subnet: ${NETWORK_SUBNET}
