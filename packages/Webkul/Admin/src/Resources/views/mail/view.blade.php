@@ -8,7 +8,7 @@
 
 <x-admin::layouts>
     <x-slot:title>
-        @lang('admin::app.mail.view.subject', ['subject' => $email->subject])
+        @lang('admin::app.mail.view.subject', ['subject' => strip_tags($email->subject)])
     </x-slot>
 
     <div class="flex flex-col gap-4">
@@ -20,7 +20,7 @@
                 <x-admin::breadcrumbs
                     name="mail.route.view"
                     :entity="$email"
-                    :route="request('route')"
+                    :route="$route"
                 />
 
                 {!! view_render_event('admin.mail.view.form.after', ['email' => $email]) !!}
@@ -31,7 +31,7 @@
                         @lang('admin::app.mail.view.title')
                     </div>
 
-                    <span class="label-active">{{ ucfirst(request('route')) }}</span>
+                    <span class="label-active">{{ ucfirst($route) }}</span>
 
                     {!! view_render_event('admin.mail.view.tags.before', ['email' => $email]) !!}
 
@@ -1342,14 +1342,6 @@
                         }
 
                         if (this.getActionType == 'reply-all') {
-                            console.log(this.action.email);
-
-                            console.log([
-                                this.action.email.from,
-                                ...(this.action.email?.cc || []),
-                                ...(this.action.email?.bcc || []),
-                            ]);
-
                             return [
                                 this.action.email.from,
                                 ...(this.action.email?.cc || []),
