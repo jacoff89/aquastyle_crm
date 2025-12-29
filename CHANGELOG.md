@@ -1,5 +1,7 @@
 ## **v2.1.6 (22 of Dec 2025)** - *Release*
 
+* #2377[fixed] Sale owner dropdown now displays values correctly for individual users
+
 * #2378[fixed] Pipeline stage name is now correctly reflected in activity.
 
 * #2302[fixed] Dashboard date picker placeholder translation now works correctly on backspace.
