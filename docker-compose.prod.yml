@@ -1,0 +1,54 @@
+services:
+  nginx:
+    container_name: aquastyle_crm-nginx
+    image: nginx:latest
+    working_dir: /var/www/html
+    depends_on:
+      - php-fpm
+    volumes:
+      - .:/var/www/html
+      - ./.docker/nginx/conf.d:/etc/nginx/conf.d
+    ports:
+      - "${NGINX_PORT}:80"
+    restart: unless-stopped
+
+  php-fpm:
+    container_name: aquastyle_crm-php-fpm
+    build:
+      context: .docker/php-fpm
+      args:
+        UID: ${UID}
+        GID: ${GID}
+    environment:
+      HTTP_PROXY: ${HTTP_PROXY}
+      HTTPS_PROXY: ${HTTP_PROXY}
+      NO_PROXY: localhost,127.0.0.1,.local
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    container_name: aquastyle_crm-db
+    image: mysql:8.4
+    volumes:
+      - aquastyle_crm-db-data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$${MYSQL_ROOT_PASSWORD}\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    ports:
+      - "${MYSQL_PORT}:3306"
+    restart: unless-stopped
+
+volumes:
+  aquastyle_crm-db-data:
