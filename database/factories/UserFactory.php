@@ -32,7 +32,7 @@ class UserFactory extends Factory
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
             'phone' => fake()->numerify('+7 9## ###-##-##'),
-            'role' => Role::Instructor,
+            'roles' => [Role::Instructor],
             'is_active' => true,
             'color' => fake()->hexColor(),
         ];
@@ -44,8 +44,19 @@ class UserFactory extends Factory
     public function admin(): static
     {
         return $this->state(fn (array $attributes) => [
-            'role' => Role::Admin,
+            'roles' => [Role::Admin],
             'color' => null,
+        ]);
+    }
+
+    /**
+     * Indicate that the user is an administrator who also teaches.
+     */
+    public function adminInstructor(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'roles' => [Role::Admin, Role::Instructor],
+            'color' => fake()->hexColor(),
         ]);
     }
 

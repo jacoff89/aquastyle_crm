@@ -61,6 +61,9 @@ defineProps({
                                 >
                                     {{ instructor.name }}
                                 </Link>
+                                <span v-if="instructor.isAdmin" class="rounded bg-depth-900/10 px-1.5 py-0.5 text-xs text-depth-800">
+                                    Администратор
+                                </span>
                             </div>
                         </td>
                         <td class="hidden px-4 py-3 text-muted md:table-cell">

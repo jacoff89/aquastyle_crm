@@ -21,7 +21,7 @@ class ProfileController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'phone' => $user->phone,
-                'role' => $user->role->label(),
+                'role' => $user->rolesLabel(),
             ],
         ]);
     }

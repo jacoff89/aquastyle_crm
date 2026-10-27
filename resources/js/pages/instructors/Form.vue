@@ -68,8 +68,13 @@ const submit = () => {
                 </FormField>
 
                 <div v-if="isEditing">
-                    <label class="flex items-center gap-2 text-sm">
-                        <input v-model="form.is_active" type="checkbox" class="size-4 rounded border-line accent-sea-600" />
+                    <label class="flex items-center gap-2 text-sm" :class="instructor.isCurrentUser ? 'cursor-not-allowed opacity-70' : ''">
+                        <input
+                            v-model="form.is_active"
+                            type="checkbox"
+                            :disabled="instructor.isCurrentUser"
+                            class="size-4 rounded border-line accent-sea-600"
+                        />
                         Может входить в систему
                     </label>
                     <p v-if="form.errors.is_active" class="mt-1.5 text-sm text-flag">{{ form.errors.is_active }}</p>

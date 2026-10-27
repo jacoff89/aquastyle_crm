@@ -9,6 +9,7 @@ use App\Http\Requests\Instructors\UpdateInstructorRequest;
 use App\Models\Event;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
@@ -16,8 +17,8 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Instructors are users with the instructor role. They are deactivated rather
- * than deleted, so past classes keep their instructor.
+ * Instructors are users with the instructor role, administrators who teach included.
+ * They are deactivated rather than deleted, so past classes keep their instructor.
  */
 class InstructorController extends Controller
 {
@@ -37,6 +38,7 @@ class InstructorController extends Controller
                     'phone' => $instructor->phone,
                     'color' => $instructor->color,
                     'isActive' => $instructor->is_active,
+                    'isAdmin' => $instructor->isAdmin(),
                 ]),
         ]);
     }
@@ -54,7 +56,7 @@ class InstructorController extends Controller
     {
         $instructor = new User(Arr::except($request->validated(), ['password']));
         $instructor->password = $request->validated('password');
-        $instructor->role = Role::Instructor;
+        $instructor->roles = [Role::Instructor];
         $instructor->creator()->associate($request->user());
         $instructor->save();
 
@@ -79,7 +81,7 @@ class InstructorController extends Controller
         ]);
     }
 
-    public function edit(User $instructor): Response
+    public function edit(Request $request, User $instructor): Response
     {
         Gate::authorize('update', $instructor);
 
@@ -92,6 +94,7 @@ class InstructorController extends Controller
                 'color' => $instructor->color,
                 'notes' => $instructor->notes,
                 'isActive' => $instructor->is_active,
+                'isCurrentUser' => $instructor->is($request->user()),
             ],
         ]);
     }

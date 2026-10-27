@@ -171,6 +171,21 @@ class EventControllerTest extends TestCase
         $this->assertDatabaseCount('events', 0);
     }
 
+    public function test_administrator_who_teaches_can_lead_and_assist(): void
+    {
+        $teachingAdmin = User::factory()->adminInstructor()->create();
+
+        $this->actingAs($teachingAdmin)
+            ->postJson('/events', $this->validPayload(['lead_instructor_id' => $teachingAdmin->id]))
+            ->assertCreated()
+            ->assertJsonPath('data.leadInstructorId', $teachingAdmin->id)
+            ->assertJsonPath('data.color', $teachingAdmin->color);
+
+        $this->actingAs($teachingAdmin)
+            ->postJson('/events', $this->validPayload(['starts_at' => '2026-11-04 10:00', 'ends_at' => '2026-11-04 11:00', 'assistant_ids' => [$teachingAdmin->id]]))
+            ->assertCreated();
+    }
+
     public function test_busy_instructor_is_reported_and_event_is_not_saved(): void
     {
         $lead = User::factory()->create(['name' => 'Анна']);

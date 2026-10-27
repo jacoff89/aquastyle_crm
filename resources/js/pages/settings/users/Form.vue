@@ -1,6 +1,7 @@
 <script setup>
 import { Link, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import ColorPicker from '../../../components/ColorPicker.vue';
 import FormField from '../../../components/FormField.vue';
 import PrimaryButton from '../../../components/PrimaryButton.vue';
 import TextArea from '../../../components/TextArea.vue';
@@ -19,12 +20,22 @@ const form = useForm({
     name: props.user?.name ?? '',
     email: props.user?.email ?? '',
     phone: props.user?.phone ?? '',
-    role: props.user?.role ?? 'instructor',
+    roles: [...(props.user?.roles ?? ['instructor'])],
+    color: props.user?.color ?? '#0891b2',
     is_active: props.user?.isActive ?? true,
     notes: props.user?.notes ?? '',
     password: '',
     password_confirmation: '',
 });
+
+const isInstructor = computed(() => form.roles.includes('instructor'));
+
+/** Свою роль администратора снять нельзя, а роль инструктора себе добавить можно. */
+const isLocked = (role) => isSelf.value && role === 'admin';
+
+const rolesError = computed(
+    () => Object.entries(form.errors).find(([field]) => field.startsWith('roles'))?.[1] ?? '',
+);
 
 const submit = () => {
     const options = { onFinish: () => form.reset('password', 'password_confirmation') };
@@ -65,31 +76,46 @@ const submit = () => {
                 </div>
 
                 <fieldset>
-                    <legend class="text-sm font-medium text-ink">Роль</legend>
+                    <legend class="text-sm font-medium text-ink">Роли</legend>
                     <div class="mt-2 grid gap-3 sm:grid-cols-2">
                         <label
                             v-for="role in roles"
                             :key="role.value"
                             class="flex items-center gap-3 rounded-md border px-3 py-2.5 text-sm"
                             :class="[
-                                form.role === role.value ? 'border-sea-600 bg-sea-50' : 'border-line bg-white',
-                                isSelf ? 'cursor-not-allowed opacity-70' : 'cursor-pointer',
+                                form.roles.includes(role.value) ? 'border-sea-600 bg-sea-50' : 'border-line bg-white',
+                                isLocked(role.value) ? 'cursor-not-allowed opacity-70' : 'cursor-pointer',
                             ]"
                         >
                             <input
-                                v-model="form.role"
-                                type="radio"
-                                name="role"
+                                v-model="form.roles"
+                                type="checkbox"
+                                name="roles[]"
                                 :value="role.value"
-                                :disabled="isSelf"
-                                class="size-4 accent-sea-600"
+                                :disabled="isLocked(role.value)"
+                                class="size-4 rounded border-line accent-sea-600"
                             />
                             {{ role.label }}
                         </label>
                     </div>
-                    <p v-if="form.errors.role" class="mt-1.5 text-sm text-flag">{{ form.errors.role }}</p>
-                    <p v-else-if="isSelf" class="mt-1.5 text-sm text-muted">Свою роль изменить нельзя.</p>
+                    <p v-if="rolesError" class="mt-1.5 text-sm text-flag">{{ rolesError }}</p>
+                    <p v-else-if="isSelf" class="mt-1.5 text-sm text-muted">
+                        Свою роль администратора снять нельзя. Если вы ведёте занятия, отметьте и роль инструктора.
+                    </p>
+                    <p v-else class="mt-1.5 text-sm text-muted">
+                        Можно выбрать обе роли: администратор, который ведёт занятия, появится в календаре как инструктор.
+                    </p>
                 </fieldset>
+
+                <FormField
+                    v-if="isInstructor"
+                    id="color"
+                    label="Цвет в календаре"
+                    hint="Этим цветом будут отмечены занятия инструктора."
+                    :error="form.errors.color"
+                >
+                    <ColorPicker id="color" v-model="form.color" :invalid="Boolean(form.errors.color)" />
+                </FormField>
 
                 <div>
                     <label class="flex items-center gap-2 text-sm" :class="isSelf ? 'cursor-not-allowed opacity-70' : ''">

@@ -56,7 +56,7 @@ class CreateAdmin extends Command
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => $validated['password'],
-            'role' => Role::Admin,
+            'roles' => [Role::Admin],
             'is_active' => true,
         ]);
 

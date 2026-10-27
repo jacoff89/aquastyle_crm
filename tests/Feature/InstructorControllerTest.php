@@ -51,7 +51,7 @@ class InstructorControllerTest extends TestCase
             ->get('/instructors')
             ->assertInertia(fn (Assert $page) => $page
                 ->has('instructors.0', fn (Assert $instructor) => $instructor
-                    ->hasAll(['id', 'name', 'email', 'phone', 'color', 'isActive'])
+                    ->hasAll(['id', 'name', 'email', 'phone', 'color', 'isActive', 'isAdmin'])
                     ->missing('password')));
     }
 
@@ -86,7 +86,7 @@ class InstructorControllerTest extends TestCase
         $this->assertSame('+7 912 345-67-89', $instructor->phone);
         $this->assertSame('#0891b2', $instructor->color);
         $this->assertSame('Ведёт детские группы', $instructor->notes);
-        $this->assertSame(Role::Instructor, $instructor->role);
+        $this->assertEquals([Role::Instructor], $instructor->roles->all());
         $this->assertTrue($instructor->is_active);
         $this->assertTrue(Hash::check('diving-2026', $instructor->password));
         $this->assertTrue($instructor->creator->is($admin));
@@ -95,9 +95,9 @@ class InstructorControllerTest extends TestCase
     public function test_new_instructor_gets_the_instructor_role_even_if_another_is_submitted(): void
     {
         $this->actingAs(User::factory()->admin()->create())
-            ->post('/instructors', $this->validPayload(['role' => 'admin']));
+            ->post('/instructors', $this->validPayload(['roles' => ['admin']]));
 
-        $this->assertSame(Role::Instructor, User::where('email', 'irina@aquastyle74.ru')->sole()->role);
+        $this->assertEquals([Role::Instructor], User::where('email', 'irina@aquastyle74.ru')->sole()->roles->all());
     }
 
     public function test_email_and_color_are_stored_in_lower_case(): void
@@ -313,9 +313,34 @@ class InstructorControllerTest extends TestCase
         $instructor = User::factory()->create();
 
         $this->actingAs(User::factory()->admin()->create())
-            ->put("/instructors/{$instructor->id}", $this->validPayload(['role' => 'admin', 'password' => '', 'password_confirmation' => '']));
+            ->put("/instructors/{$instructor->id}", $this->validPayload(['roles' => ['admin'], 'password' => '', 'password_confirmation' => '']));
 
-        $this->assertSame(Role::Instructor, $instructor->fresh()->role);
+        $this->assertEquals([Role::Instructor], $instructor->fresh()->roles->all());
+    }
+
+    public function test_administrators_who_teach_are_listed_among_instructors(): void
+    {
+        User::factory()->adminInstructor()->create(['name' => 'Анна Директор']);
+        User::factory()->admin()->create(['name' => 'Борис Бухгалтер']);
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->get('/instructors')
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('instructors', 1)
+                ->where('instructors.0.name', 'Анна Директор')
+                ->where('instructors.0.isAdmin', true));
+    }
+
+    public function test_administrator_who_teaches_can_not_deactivate_themselves_here(): void
+    {
+        $admin = User::factory()->adminInstructor()->create();
+
+        $this->actingAs($admin)
+            ->put("/instructors/{$admin->id}", $this->validPayload(['email' => $admin->email, 'is_active' => false, 'password' => '', 'password_confirmation' => '']))
+            ->assertSessionHasErrors(['is_active' => 'Свою учётную запись отключить нельзя.']);
+
+        $this->assertTrue($admin->fresh()->is_active);
+        $this->assertTrue($admin->fresh()->isAdmin());
     }
 
     public function test_admin_deactivates_and_reactivates_instructor(): void

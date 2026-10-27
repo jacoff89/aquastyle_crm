@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\Role;
 use App\Models\EventType;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -47,8 +48,8 @@ class HandleInertiaRequests extends Middleware
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
-                    'role' => $user->role->value,
-                    'roleLabel' => $user->role->label(),
+                    'roles' => $user->roles->map(fn (Role $role): string => $role->value)->values(),
+                    'roleLabel' => $user->rolesLabel(),
                 ],
             ],
             'can' => [

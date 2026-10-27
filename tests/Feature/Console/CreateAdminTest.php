@@ -24,7 +24,7 @@ class CreateAdminTest extends TestCase
 
         $admin = User::where('email', 'anna@aquastyle74.ru')->sole();
         $this->assertSame('Анна Петрова', $admin->name);
-        $this->assertSame(Role::Admin, $admin->role);
+        $this->assertEquals([Role::Admin], $admin->roles->all());
         $this->assertTrue($admin->is_active);
         $this->assertTrue(Hash::check('secret-password', $admin->password));
     }
@@ -36,7 +36,7 @@ class CreateAdminTest extends TestCase
             ->expectsQuestion('Повторите пароль', 'secret-password')
             ->assertSuccessful();
 
-        $this->assertDatabaseHas('users', ['email' => 'anna@aquastyle74.ru', 'role' => 'admin']);
+        $this->assertTrue(User::where('email', 'anna@aquastyle74.ru')->sole()->isAdmin());
     }
 
     public function test_admin_is_not_created_when_passwords_differ(): void
