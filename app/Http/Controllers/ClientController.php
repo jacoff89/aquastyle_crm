@@ -2,9 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\AttendanceStatus;
+use App\Enums\EventStatus;
 use App\Http\Requests\Clients\StoreClientRequest;
 use App\Http\Requests\Clients\UpdateClientRequest;
 use App\Models\Client;
+use App\Models\Event;
+use App\Models\EventClient;
+use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -14,10 +21,15 @@ use Inertia\Response;
 
 /**
  * The client directory. Clients are soft-deleted, so past classes keep their client.
+ *
+ * The event window adds a client with a JSON request and gets the new client back,
+ * so the person does not leave the calendar.
  */
 class ClientController extends Controller
 {
     private const PER_PAGE = 25;
+
+    private const HISTORY_LIMIT = 50;
 
     /**
      * Sort keys offered in the list header, mapped to the columns they order by.
@@ -80,11 +92,21 @@ class ClientController extends Controller
         ]);
     }
 
-    public function store(StoreClientRequest $request): RedirectResponse
+    public function store(StoreClientRequest $request): RedirectResponse|JsonResponse
     {
         $client = new Client(Arr::except($request->validated(), ['confirm_duplicate']));
         $client->creator()->associate($request->user());
         $client->save();
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'client' => [
+                    'id' => $client->id,
+                    'name' => $client->fullName(),
+                    'phone' => $client->phone,
+                ],
+            ], 201);
+        }
 
         return redirect()->route('clients.show', $client)->with('status', "Добавлен клиент: {$client->fullName()}.");
     }
@@ -93,6 +115,8 @@ class ClientController extends Controller
     {
         Gate::authorize('view', $client);
 
+        $now = now();
+
         return Inertia::render('clients/Show', [
             'client' => [
                 ...$this->formData($client),
@@ -100,6 +124,9 @@ class ClientController extends Controller
                 'birthDateLabel' => $client->birth_date?->format('d.m.Y'),
             ],
             'canDelete' => $request->user()->can('delete', $client),
+            'upcoming' => $this->upcomingBookings($client, $now)->get()->map($this->bookingRow(...))->values(),
+            'history' => $this->pastBookings($client, $now)->limit(self::HISTORY_LIMIT)->get()->map($this->bookingRow(...))->values(),
+            'historyTotal' => $this->pastBookings($client, $now)->count(),
         ]);
     }
 
@@ -142,6 +169,64 @@ class ClientController extends Controller
             'email' => $client->email,
             'birthDate' => $client->birth_date?->format('Y-m-d'),
             'notes' => $client->notes,
+        ];
+    }
+
+    /**
+     * The client's bookings that are still ahead: booked, on an event that has not ended
+     * and is not cancelled. The soonest first.
+     *
+     * @return BelongsToMany<Event, Client, EventClient, 'pivot'>
+     */
+    private function upcomingBookings(Client $client, CarbonInterface $now): BelongsToMany
+    {
+        return $client->events()
+            ->where('event_client.status', AttendanceStatus::Booked->value)
+            ->where('events.status', '!=', EventStatus::Cancelled->value)
+            ->where('events.ends_at', '>=', $now)
+            ->with(['type', 'instructors'])
+            ->orderBy('events.starts_at')
+            ->orderBy('events.id');
+    }
+
+    /**
+     * Everything that is not upcoming: classes that took place, cancelled events and
+     * bookings the client cancelled. The latest first.
+     *
+     * @return BelongsToMany<Event, Client, EventClient, 'pivot'>
+     */
+    private function pastBookings(Client $client, CarbonInterface $now): BelongsToMany
+    {
+        return $client->events()
+            ->where(fn ($query) => $query
+                ->where('event_client.status', '!=', AttendanceStatus::Booked->value)
+                ->orWhere('events.status', EventStatus::Cancelled->value)
+                ->orWhere('events.ends_at', '<', $now))
+            ->with(['type', 'instructors'])
+            ->orderByDesc('events.starts_at')
+            ->orderByDesc('events.id');
+    }
+
+    /**
+     * One line of the client's classes: when, what and where, and what happened to the client.
+     *
+     * @return array<string, mixed>
+     */
+    private function bookingRow(Event $event): array
+    {
+        $isMultiDay = ! $event->starts_at->isSameDay($event->ends_at);
+
+        return [
+            'eventId' => $event->id,
+            'title' => $event->displayTitle(),
+            'dateLabel' => $event->starts_at->format('d.m.Y'),
+            'timeLabel' => $event->starts_at->format('H:i').($isMultiDay ? ' – '.$event->ends_at->format('d.m H:i') : '–'.$event->ends_at->format('H:i')),
+            'location' => $event->location,
+            'leadInstructor' => $event->leadInstructor()?->name,
+            'isEventCancelled' => $event->status === EventStatus::Cancelled,
+            'status' => $event->pivot->status->value,
+            'statusLabel' => $event->pivot->status->label(),
+            'calendarUrl' => route('calendar', ['view' => 'day', 'date' => $event->starts_at->format('Y-m-d')]),
         ];
     }
 }

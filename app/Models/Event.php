@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AttendanceStatus;
 use App\Enums\EventStatus;
 use App\Enums\InstructorRole;
 use Carbon\CarbonInterface;
@@ -13,10 +14,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A class in the calendar. It has one lead instructor and any number of assistants;
- * its colour in the calendar is the lead instructor's colour.
+ * its colour in the calendar is the lead instructor's colour. Clients are booked on it,
+ * up to its capacity when it has one.
  *
  * Times are stored as wall-clock time in the application time zone.
  */
@@ -69,6 +72,16 @@ class Event extends Model
     }
 
     /**
+     * The clients booked on the event, with their attendance status.
+     *
+     * @return HasMany<EventClient, $this>
+     */
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(EventClient::class);
+    }
+
+    /**
      * The user who created the event.
      *
      * @return BelongsTo<User, $this>
@@ -115,6 +128,22 @@ class Event extends Model
     }
 
     /**
+     * How many places are taken. A client who cancelled or did not come does not take one.
+     */
+    public function occupiedPlaces(): int
+    {
+        return $this->bookings()->whereIn('status', AttendanceStatus::occupyingValues())->count();
+    }
+
+    /**
+     * Whether another client fits. An event without a capacity has no limit.
+     */
+    public function hasFreePlace(): bool
+    {
+        return $this->capacity === null || $this->occupiedPlaces() < $this->capacity;
+    }
+
+    /**
      * Events that share at least a minute with the given period. An event that ends
      * exactly when the period starts does not overlap it.
      *
@@ -132,7 +161,7 @@ class Event extends Model
     #[Scope]
     protected function notCancelled(Builder $query): void
     {
-        $query->where('status', '!=', EventStatus::Cancelled->value);
+        $query->where($query->qualifyColumn('status'), '!=', EventStatus::Cancelled->value);
     }
 
     /**

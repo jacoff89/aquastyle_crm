@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\EventStatus;
 use App\Enums\InstructorRole;
 use App\Models\Event;
+use App\Models\EventClient;
 use App\Models\EventType;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -364,6 +365,54 @@ class EventControllerTest extends TestCase
             ->assertOk();
 
         $this->assertSame([$new->id], $event->refresh()->instructors->pluck('id')->all());
+    }
+
+    public function test_capacity_cannot_drop_below_the_places_already_taken(): void
+    {
+        $event = Event::factory()->ledBy(User::factory()->create())->create(['capacity' => 6]);
+        EventClient::factory()->forEvent($event)->count(2)->create();
+        EventClient::factory()->forEvent($event)->attended()->create();
+
+        $this->actingAs($this->admin())
+            ->patchJson("/events/{$event->id}", $this->payloadOf($event, ['capacity' => 2]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['capacity' => 'На занятие уже записано клиентов: 3. Лимит мест не может быть меньше.']);
+
+        $this->assertSame(6, $event->refresh()->capacity);
+    }
+
+    public function test_capacity_may_equal_the_places_already_taken(): void
+    {
+        $event = Event::factory()->ledBy(User::factory()->create())->create(['capacity' => 6]);
+        EventClient::factory()->forEvent($event)->count(3)->create();
+
+        $this->actingAs($this->admin())
+            ->patchJson("/events/{$event->id}", $this->payloadOf($event, ['capacity' => 3]))
+            ->assertOk()
+            ->assertJsonPath('data.capacity', 3);
+    }
+
+    public function test_clients_who_did_not_come_or_cancelled_do_not_hold_a_place(): void
+    {
+        $event = Event::factory()->ledBy(User::factory()->create())->create(['capacity' => 6]);
+        EventClient::factory()->forEvent($event)->create();
+        EventClient::factory()->forEvent($event)->noShow()->create();
+        EventClient::factory()->forEvent($event)->cancelled()->create();
+
+        $this->actingAs($this->admin())
+            ->patchJson("/events/{$event->id}", $this->payloadOf($event, ['capacity' => 1]))
+            ->assertOk();
+    }
+
+    public function test_capacity_can_be_removed_whatever_the_bookings(): void
+    {
+        $event = Event::factory()->ledBy(User::factory()->create())->create(['capacity' => 6]);
+        EventClient::factory()->forEvent($event)->count(3)->create();
+
+        $this->actingAs($this->admin())
+            ->patchJson("/events/{$event->id}", $this->payloadOf($event, ['capacity' => null]))
+            ->assertOk()
+            ->assertJsonPath('data.capacity', null);
     }
 
     public function test_unknown_event_is_not_found(): void

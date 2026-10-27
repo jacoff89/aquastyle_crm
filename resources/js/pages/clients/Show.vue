@@ -1,10 +1,14 @@
 <script setup>
 import { Link, router } from '@inertiajs/vue3';
+import ClientBookings from '../../components/ClientBookings.vue';
 import AppLayout from '../../layouts/AppLayout.vue';
 
 const props = defineProps({
     client: { type: Object, required: true },
     canDelete: { type: Boolean, required: true },
+    upcoming: { type: Array, required: true },
+    history: { type: Array, required: true },
+    historyTotal: { type: Number, required: true },
 });
 
 const destroy = () => {
@@ -61,22 +65,29 @@ const destroy = () => {
 
             <section aria-labelledby="upcoming-heading">
                 <h2 id="upcoming-heading" class="text-lg font-semibold">Ближайшие занятия</h2>
-                <div class="mt-3 rounded-lg border border-dashed border-line bg-white px-6 py-10 text-center">
-                    <p class="text-base font-medium text-ink">Занятий пока нет</p>
-                    <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-muted">
-                        Записи клиента на занятия появятся здесь, когда в календаре заработает запись клиентов (этап 6).
-                    </p>
+                <div class="mt-3">
+                    <ClientBookings
+                        :rows="upcoming"
+                        label="Ближайшие занятия клиента"
+                        empty-title="Занятий пока нет"
+                        empty-text="Записать клиента можно в календаре: откройте занятие и перейдите на вкладку «Клиенты»."
+                    />
                 </div>
             </section>
 
             <section aria-labelledby="history-heading">
                 <h2 id="history-heading" class="text-lg font-semibold">История посещений</h2>
-                <div class="mt-3 rounded-lg border border-dashed border-line bg-white px-6 py-10 text-center">
-                    <p class="text-base font-medium text-ink">Посещений пока нет</p>
-                    <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-muted">
-                        Здесь будут занятия, на которые клиент приходил или не пришёл.
-                    </p>
+                <div class="mt-3">
+                    <ClientBookings
+                        :rows="history"
+                        label="История посещений клиента"
+                        empty-title="Посещений пока нет"
+                        empty-text="Здесь будут занятия, на которые клиент приходил или не пришёл."
+                    />
                 </div>
+                <p v-if="historyTotal > history.length" class="mt-2 text-sm text-muted">
+                    Показаны последние {{ history.length }} из {{ historyTotal }}.
+                </p>
             </section>
 
             <Link href="/clients" class="inline-block text-sm text-muted hover:text-ink">← Все клиенты</Link>
