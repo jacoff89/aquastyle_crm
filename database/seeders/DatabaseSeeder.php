@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Enums\Role;
+use App\Models\Client;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -38,5 +39,9 @@ class DatabaseSeeder extends Seeder
             'role' => Role::Instructor,
             'color' => '#0891b2',
         ])->creator()->associate($admin)->save();
+
+        if (Client::query()->doesntExist()) {
+            Client::factory()->count(12)->create(['created_by' => $admin->id]);
+        }
     }
 }

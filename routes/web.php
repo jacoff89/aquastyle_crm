@@ -3,6 +3,8 @@
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\ClientController;
+use App\Http\Controllers\ClientDuplicateController;
 use App\Http\Controllers\InstructorController;
 use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\ProfileController;
@@ -32,6 +34,9 @@ Route::middleware('auth')->group(function () {
     Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::put('profile/password', [PasswordController::class, 'update'])->name('profile.password');
+
+    Route::get('clients/duplicates', ClientDuplicateController::class)->name('clients.duplicates');
+    Route::resource('clients', ClientController::class);
 
     Route::resource('instructors', InstructorController::class)->except(['destroy']);
 

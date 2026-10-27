@@ -3,6 +3,7 @@
 namespace Tests\Feature\Database;
 
 use App\Enums\Role;
+use App\Models\Client;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -30,6 +31,16 @@ class DatabaseSeederTest extends TestCase
         $this->seed(DatabaseSeeder::class);
 
         $this->assertDatabaseCount('users', 2);
+        $this->assertDatabaseCount('clients', 12);
+    }
+
+    public function test_demo_clients_are_created_with_a_normalized_phone(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+
+        $this->assertDatabaseCount('clients', 12);
+        $this->assertSame(0, Client::query()->where('phone_digits', '')->count());
+        $this->assertTrue(Client::query()->with('creator')->get()->every(fn (Client $client) => $client->creator->email === 'admin@example.com'));
     }
 
     public function test_no_demo_users_are_created_in_production(): void
@@ -39,5 +50,6 @@ class DatabaseSeederTest extends TestCase
         $this->seed(DatabaseSeeder::class);
 
         $this->assertDatabaseCount('users', 0);
+        $this->assertDatabaseCount('clients', 0);
     }
 }
