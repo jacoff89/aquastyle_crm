@@ -53,6 +53,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'can' => [
                 'manageUsers' => $user?->can('viewAny', User::class) ?? false,
+                'manageInstructors' => $user?->can('viewAny', User::class) ?? false,
                 'manageEventTypes' => $user?->can('viewAny', EventType::class) ?? false,
             ],
             'flash' => [

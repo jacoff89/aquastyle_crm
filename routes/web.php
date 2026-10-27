@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\InstructorController;
 use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Settings\EventTypeController;
@@ -31,6 +32,8 @@ Route::middleware('auth')->group(function () {
     Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::put('profile/password', [PasswordController::class, 'update'])->name('profile.password');
+
+    Route::resource('instructors', InstructorController::class)->except(['destroy']);
 
     Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('event-types', [EventTypeController::class, 'index'])->name('event-types.index');

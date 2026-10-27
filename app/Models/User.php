@@ -6,6 +6,7 @@ use App\Enums\Role;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -41,6 +42,16 @@ class User extends Authenticatable
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Limit the query to accounts with the instructor role.
+     *
+     * @param  Builder<User>  $query
+     */
+    public function scopeInstructors(Builder $query): void
+    {
+        $query->where('role', Role::Instructor->value);
     }
 
     public function isAdmin(): bool

@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\User;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +21,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // An instructor is a user with the instructor role: other accounts are not found under /instructors.
+        Route::bind('instructor', fn (string $value): User => User::instructors()->findOrFail($value));
     }
 }
