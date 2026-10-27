@@ -174,7 +174,7 @@ abstract class EventRequest extends FormRequest
         $currentInstructorIds = $this->currentInstructorIds;
 
         return Rule::exists(User::class, 'id')->where(fn (Builder $query) => $query
-            ->where('role', Role::Instructor->value)
+            ->whereJsonContains('roles', Role::Instructor->value)
             ->where(fn (Builder $query) => $query
                 ->where('is_active', true)
                 ->when($currentInstructorIds !== [], fn (Builder $query) => $query->orWhereIn('id', $currentInstructorIds))));

@@ -20,8 +20,8 @@ class DatabaseSeederTest extends TestCase
         $admin = User::where('email', 'admin@example.com')->sole();
         $instructor = User::where('email', 'instructor@example.com')->sole();
 
-        $this->assertSame(Role::Admin, $admin->role);
-        $this->assertSame(Role::Instructor, $instructor->role);
+        $this->assertEquals([Role::Admin], $admin->roles->all());
+        $this->assertEquals([Role::Instructor], $instructor->roles->all());
         $this->assertTrue($instructor->creator->is($admin));
     }
 

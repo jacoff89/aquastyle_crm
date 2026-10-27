@@ -20,11 +20,21 @@ class HandleInertiaRequestsTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('calendar/Index')
                 ->where('auth.user.name', 'Анна Петрова')
-                ->where('auth.user.role', 'admin')
+                ->where('auth.user.roles', ['admin'])
                 ->where('auth.user.roleLabel', 'Администратор')
                 ->where('can.manageUsers', true)
                 ->where('can.manageInstructors', true)
                 ->where('can.manageEventTypes', true));
+    }
+
+    public function test_administrator_who_teaches_has_both_roles_in_the_menu(): void
+    {
+        $this->actingAs(User::factory()->adminInstructor()->create())
+            ->get('/calendar')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('auth.user.roles', ['admin', 'instructor'])
+                ->where('auth.user.roleLabel', 'Администратор, инструктор')
+                ->where('can.manageUsers', true));
     }
 
     public function test_instructor_does_not_get_settings_in_the_menu(): void

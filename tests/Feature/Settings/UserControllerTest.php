@@ -62,7 +62,8 @@ class UserControllerTest extends TestCase
         $user = User::where('email', 'irina@aquastyle74.ru')->sole();
         $this->assertSame('Ирина Волкова', $user->name);
         $this->assertSame('+7 912 345-67-89', $user->phone);
-        $this->assertSame(Role::Instructor, $user->role);
+        $this->assertEquals([Role::Instructor], $user->roles->all());
+        $this->assertSame('#16a34a', $user->color);
         $this->assertTrue($user->is_active);
         $this->assertTrue(Hash::check('diving-2026', $user->password));
         $this->assertTrue($user->creator->is($admin));
@@ -85,14 +86,14 @@ class UserControllerTest extends TestCase
         $this->assertDatabaseMissing('users', ['email' => 'irina@aquastyle74.ru']);
     }
 
-    public function test_new_user_requires_name_email_role_and_password(): void
+    public function test_new_user_requires_name_email_roles_and_password(): void
     {
         $this->actingAs(User::factory()->admin()->create())
             ->post('/settings/users', [])
             ->assertSessionHasErrors([
                 'name' => 'Поле «Имя» обязательно для заполнения.',
                 'email' => 'Поле «Email» обязательно для заполнения.',
-                'role' => 'Поле «Роль» обязательно для заполнения.',
+                'roles' => 'Выберите хотя бы одну роль.',
                 'password' => 'Поле «Пароль» обязательно для заполнения.',
             ]);
     }
@@ -106,11 +107,52 @@ class UserControllerTest extends TestCase
             ->assertSessionHasErrors(['email' => 'Такое значение поля «Email» уже занято.']);
     }
 
-    public function test_role_must_be_known(): void
+    public function test_roles_must_be_known_and_not_empty(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)
+            ->post('/settings/users', $this->validPayload(['roles' => ['manager']]))
+            ->assertSessionHasErrors('roles.0');
+
+        $this->actingAs($admin)
+            ->post('/settings/users', $this->validPayload(['roles' => []]))
+            ->assertSessionHasErrors(['roles' => 'Выберите хотя бы одну роль.']);
+
+        $this->actingAs($admin)
+            ->post('/settings/users', $this->validPayload(['roles' => ['admin', 'admin']]))
+            ->assertSessionHasErrors('roles.0');
+
+        $this->assertDatabaseMissing('users', ['email' => 'irina@aquastyle74.ru']);
+    }
+
+    public function test_admin_creates_administrator_who_also_teaches(): void
     {
         $this->actingAs(User::factory()->admin()->create())
-            ->post('/settings/users', $this->validPayload(['role' => 'manager']))
-            ->assertSessionHasErrors(['role' => 'Выбрано недопустимое значение поля «Роль».']);
+            ->post('/settings/users', $this->validPayload(['roles' => ['admin', 'instructor']]))
+            ->assertRedirect('/settings/users');
+
+        $user = User::where('email', 'irina@aquastyle74.ru')->sole();
+        $this->assertTrue($user->isAdmin());
+        $this->assertTrue($user->isInstructor());
+        $this->assertSame('Администратор, инструктор', $user->rolesLabel());
+        $this->assertTrue(User::instructors()->whereKey($user->id)->exists());
+    }
+
+    public function test_instructor_needs_a_calendar_color(): void
+    {
+        $this->actingAs(User::factory()->admin()->create())
+            ->post('/settings/users', $this->validPayload(['color' => '']))
+            ->assertSessionHasErrors(['color' => 'Выберите цвет: он нужен инструктору для календаря.']);
+    }
+
+    public function test_administrator_without_instructor_role_keeps_no_color(): void
+    {
+        $this->actingAs(User::factory()->admin()->create())
+            ->post('/settings/users', $this->validPayload(['roles' => ['admin'], 'color' => '#16a34a']))
+            ->assertSessionHasNoErrors();
+
+        $this->assertNull(User::where('email', 'irina@aquastyle74.ru')->sole()->color);
     }
 
     public function test_edit_form_shows_user_without_password(): void
@@ -123,7 +165,8 @@ class UserControllerTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('settings/users/Form')
                 ->where('user.name', 'Ирина')
-                ->where('user.role', 'instructor')
+                ->where('user.roles', ['instructor'])
+                ->where('user.color', $instructor->color)
                 ->where('user.notes', 'Ведёт детские группы')
                 ->where('user.isCurrentUser', false)
                 ->missing('user.password')
@@ -136,7 +179,7 @@ class UserControllerTest extends TestCase
 
         $this->actingAs(User::factory()->admin()->create())
             ->put("/settings/users/{$instructor->id}", $this->validPayload([
-                'role' => 'admin',
+                'roles' => ['admin'],
                 'password' => '',
                 'password_confirmation' => '',
             ]))
@@ -145,7 +188,8 @@ class UserControllerTest extends TestCase
 
         $instructor->refresh();
         $this->assertSame('irina@aquastyle74.ru', $instructor->email);
-        $this->assertSame(Role::Admin, $instructor->role);
+        $this->assertEquals([Role::Admin], $instructor->roles->all());
+        $this->assertNull($instructor->color);
         $this->assertTrue(Hash::check('password', $instructor->password));
     }
 
@@ -178,15 +222,34 @@ class UserControllerTest extends TestCase
             ->assertSessionHasNoErrors();
     }
 
-    public function test_admin_can_not_change_own_role(): void
+    public function test_admin_can_not_give_up_own_administrator_role(): void
     {
         $admin = User::factory()->admin()->create();
 
         $this->actingAs($admin)
-            ->put("/settings/users/{$admin->id}", $this->validPayload(['role' => 'instructor', 'password' => '', 'password_confirmation' => '']))
-            ->assertSessionHasErrors(['role' => 'Свою роль изменить нельзя.']);
+            ->put("/settings/users/{$admin->id}", $this->validPayload(['roles' => ['instructor'], 'password' => '', 'password_confirmation' => '']))
+            ->assertSessionHasErrors(['roles' => 'Свою роль администратора снять нельзя.']);
 
         $this->assertTrue($admin->fresh()->isAdmin());
+    }
+
+    public function test_admin_takes_on_the_instructor_role(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)
+            ->put("/settings/users/{$admin->id}", $this->validPayload([
+                'email' => $admin->email,
+                'roles' => ['admin', 'instructor'],
+                'password' => '',
+                'password_confirmation' => '',
+            ]))
+            ->assertSessionHasNoErrors();
+
+        $admin->refresh();
+        $this->assertTrue($admin->isAdmin());
+        $this->assertTrue($admin->isInstructor());
+        $this->assertSame('#16a34a', $admin->color);
     }
 
     public function test_admin_can_not_deactivate_own_account(): void
@@ -194,7 +257,7 @@ class UserControllerTest extends TestCase
         $admin = User::factory()->admin()->create();
 
         $this->actingAs($admin)
-            ->put("/settings/users/{$admin->id}", $this->validPayload(['role' => 'admin', 'is_active' => false, 'password' => '', 'password_confirmation' => '']))
+            ->put("/settings/users/{$admin->id}", $this->validPayload(['roles' => ['admin'], 'is_active' => false, 'password' => '', 'password_confirmation' => '']))
             ->assertSessionHasErrors(['is_active' => 'Свою учётную запись отключить нельзя.']);
 
         $this->assertTrue($admin->fresh()->is_active);
@@ -205,7 +268,7 @@ class UserControllerTest extends TestCase
         $admin = User::factory()->admin()->create();
 
         $this->actingAs($admin)
-            ->put("/settings/users/{$admin->id}", $this->validPayload(['role' => 'admin', 'email' => $admin->email, 'password' => '', 'password_confirmation' => '']))
+            ->put("/settings/users/{$admin->id}", $this->validPayload(['roles' => ['admin'], 'email' => $admin->email, 'password' => '', 'password_confirmation' => '']))
             ->assertSessionHasNoErrors();
 
         $this->assertSame('Ирина Волкова', $admin->fresh()->name);
@@ -216,7 +279,7 @@ class UserControllerTest extends TestCase
         $other = User::factory()->create();
 
         $this->actingAs(User::factory()->create())
-            ->put("/settings/users/{$other->id}", $this->validPayload(['role' => 'admin']))
+            ->put("/settings/users/{$other->id}", $this->validPayload(['roles' => ['admin']]))
             ->assertForbidden();
 
         $this->assertTrue($other->fresh()->isInstructor());
@@ -232,7 +295,8 @@ class UserControllerTest extends TestCase
             'name' => 'Ирина Волкова',
             'email' => 'irina@aquastyle74.ru',
             'phone' => '+7 912 345-67-89',
-            'role' => 'instructor',
+            'roles' => ['instructor'],
+            'color' => '#16a34a',
             'is_active' => true,
             'notes' => null,
             'password' => 'diving-2026',

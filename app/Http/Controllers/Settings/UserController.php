@@ -9,7 +9,6 @@ use App\Http\Requests\Settings\UpdateUserRequest;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -30,7 +29,7 @@ class UserController extends Controller
                     'name' => $user->name,
                     'email' => $user->email,
                     'phone' => $user->phone,
-                    'roleLabel' => $user->role->label(),
+                    'roleLabel' => $user->rolesLabel(),
                     'isActive' => $user->is_active,
                     'isCurrentUser' => $user->is($request->user()),
                 ]),
@@ -49,7 +48,7 @@ class UserController extends Controller
 
     public function store(StoreUserRequest $request): RedirectResponse
     {
-        $user = new User(Arr::except($request->validated(), ['password']));
+        $user = new User($request->userAttributes());
         $user->password = $request->validated('password');
         $user->creator()->associate($request->user());
         $user->save();
@@ -67,7 +66,8 @@ class UserController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'phone' => $user->phone,
-                'role' => $user->role->value,
+                'roles' => $user->roles->map(fn (Role $role): string => $role->value)->values(),
+                'color' => $user->color,
                 'isActive' => $user->is_active,
                 'notes' => $user->notes,
                 'isCurrentUser' => $user->is($request->user()),
@@ -78,7 +78,7 @@ class UserController extends Controller
 
     public function update(UpdateUserRequest $request, User $user): RedirectResponse
     {
-        $user->fill(Arr::except($request->validated(), ['password']));
+        $user->fill($request->userAttributes());
 
         if ($request->filled('password')) {
             $user->password = $request->validated('password');

@@ -30,13 +30,13 @@ class DatabaseSeeder extends Seeder
         $admin = User::firstOrCreate(['email' => 'admin@example.com'], [
             'name' => 'Демо Администратор',
             'password' => 'password',
-            'role' => Role::Admin,
+            'roles' => [Role::Admin],
         ]);
 
         User::firstOrCreate(['email' => 'instructor@example.com'], [
             'name' => 'Демо Инструктор',
             'password' => 'password',
-            'role' => Role::Instructor,
+            'roles' => [Role::Instructor],
             'color' => '#0891b2',
         ])->creator()->associate($admin)->save();
 

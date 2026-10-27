@@ -6,10 +6,12 @@ use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\Validator;
 
 /**
  * Editing an instructor. The password is optional: an empty field keeps the old one.
- * The role is not editable here, so a submitted role is ignored.
+ * Roles are not editable here, so submitted roles are ignored. An administrator who
+ * teaches can't deactivate their own account from here either.
  */
 class UpdateInstructorRequest extends FormRequest
 {
@@ -31,6 +33,20 @@ class UpdateInstructorRequest extends FormRequest
             'is_active' => ['boolean'],
             'notes' => ['nullable', 'string', 'max:2000'],
             'password' => ['nullable', 'confirmed', Password::defaults()],
+        ];
+    }
+
+    /**
+     * @return array<int, callable(Validator): void>
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                if ($this->user()->is($this->instructor()) && ! $this->boolean('is_active')) {
+                    $validator->errors()->add('is_active', 'Свою учётную запись отключить нельзя.');
+                }
+            },
         ];
     }
 
