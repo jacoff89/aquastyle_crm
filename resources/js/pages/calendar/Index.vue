@@ -1,14 +1,18 @@
 <script setup>
-import { http } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { Link, http, usePage } from '@inertiajs/vue3';
+import { computed, ref, watch } from 'vue';
 import VueCal from 'vue-cal';
 import 'vue-cal/dist/vuecal.css';
 import EventDialog from '../../components/EventDialog.vue';
+import FormField from '../../components/FormField.vue';
+import SelectInput from '../../components/SelectInput.vue';
 import AppLayout from '../../layouts/AppLayout.vue';
 
 const props = defineProps({
     initialDate: { type: String, required: true },
     initialView: { type: String, required: true },
+    /** Фильтры из адреса страницы: { instructorId, eventTypeId }, null — без фильтра. */
+    initialFilters: { type: Object, required: true },
     instructors: { type: Array, required: true },
     eventTypes: { type: Array, required: true },
     statuses: { type: Array, required: true },
@@ -16,11 +20,21 @@ const props = defineProps({
     canCreate: { type: Boolean, required: true },
 });
 
+const page = usePage();
+
 const activeView = ref(props.initialView);
 const selectedDate = ref(props.initialDate);
 const events = ref([]);
 const loading = ref(false);
+const loaded = ref(false);
 const notice = ref('');
+
+/** Пустая строка — «все»: так её отдаёт и принимает выпадающий список. */
+const instructorFilter = ref(props.initialFilters.instructorId ?? '');
+const typeFilter = ref(props.initialFilters.eventTypeId ?? '');
+const hasFilters = computed(() => instructorFilter.value !== '' || typeFilter.value !== '');
+
+const isInstructor = computed(() => page.props.auth.user.roles.includes('instructor'));
 
 const pad = (number) => String(number).padStart(2, '0');
 
@@ -64,7 +78,16 @@ const loadEvents = async () => {
     const id = ++loadId;
     loading.value = true;
 
-    const { status, data } = await request('get', `/calendar/events?start=${range.value.start}&end=${range.value.end}`);
+    const query = new URLSearchParams({ start: range.value.start, end: range.value.end });
+
+    if (instructorFilter.value !== '') {
+        query.set('instructor_id', instructorFilter.value);
+    }
+    if (typeFilter.value !== '') {
+        query.set('event_type_id', typeFilter.value);
+    }
+
+    const { status, data } = await request('get', `/calendar/events?${query}`);
 
     if (id !== loadId) {
         return;
@@ -74,19 +97,38 @@ const loadEvents = async () => {
 
     if (status === 200) {
         events.value = data.data;
+        loaded.value = true;
     } else {
         notice.value = 'Не удалось загрузить занятия. Обновите страницу.';
     }
 };
 
 /**
- * Запоминаем вид и дату в адресе, чтобы после обновления страницы календарь
- * открылся там же, где был.
+ * Запоминаем вид, дату и фильтры в адресе, чтобы после обновления страницы календарь
+ * открылся там же, где был, а ссылкой можно было поделиться.
  */
-const rememberPosition = (view, date) => {
+let position = null;
+
+const rememberPosition = () => {
+    if (position === null) {
+        return;
+    }
+
     const url = new URL(window.location.href);
-    url.searchParams.set('view', view);
-    url.searchParams.set('date', formatDate(date));
+    url.searchParams.set('view', position.view);
+    url.searchParams.set('date', formatDate(position.date));
+
+    for (const [name, value] of [
+        ['instructor_id', instructorFilter.value],
+        ['event_type_id', typeFilter.value],
+    ]) {
+        if (value === '') {
+            url.searchParams.delete(name);
+        } else {
+            url.searchParams.set(name, value);
+        }
+    }
+
     window.history.replaceState(window.history.state, '', url);
 };
 
@@ -96,8 +138,19 @@ const onViewChange = (view) => {
 
     range.value = { start: formatDate(start), end: formatDate(end) };
     activeView.value = view.view;
-    rememberPosition(view.view, view.startDate);
+    position = { view: view.view, date: view.startDate };
+    rememberPosition();
     loadEvents();
+};
+
+watch([instructorFilter, typeFilter], () => {
+    rememberPosition();
+    loadEvents();
+});
+
+const resetFilters = () => {
+    instructorFilter.value = '';
+    typeFilter.value = '';
 };
 
 /* ---------- Инструкторы и колонки дневного вида ---------- */
@@ -105,8 +158,9 @@ const onViewChange = (view) => {
 const instructorsById = computed(() => new Map(props.instructors.map((instructor) => [instructor.id, instructor])));
 
 /**
- * В дневном виде у каждого инструктора своя колонка. Отключённые инструкторы
- * получают колонку, только если у них есть занятия в этот день.
+ * В дневном виде у каждого инструктора своя колонка; с фильтром по инструктору
+ * остаётся одна. Отключённые инструкторы получают колонку, только если у них есть
+ * занятия в этот день.
  */
 const splits = computed(() => {
     if (activeView.value !== 'day') {
@@ -116,9 +170,12 @@ const splits = computed(() => {
     const busyIds = new Set(events.value.flatMap((event) => event.instructors.map((instructor) => instructor.id)));
 
     return props.instructors
+        .filter((instructor) => instructorFilter.value === '' || instructor.id === instructorFilter.value)
         .filter((instructor) => instructor.isActive || busyIds.has(instructor.id))
         .map((instructor) => ({ id: instructor.id, label: instructor.name, color: instructor.color }));
 });
+
+const splitIds = computed(() => new Set(splits.value.map((split) => split.id)));
 
 /** Белый или тёмный текст — что лучше читается на цвете инструктора. */
 const textColorFor = (hex) => {
@@ -141,7 +198,7 @@ const calendarEvents = computed(() =>
             start: event.start,
             end: event.end,
             title: event.title,
-            class: event.isCancelled ? 'is-cancelled' : '',
+            class: [event.isCancelled && 'is-cancelled', event.isMine && 'is-mine'].filter(Boolean).join(' '),
             draggable: editable,
             resizable: editable,
             deletable: false,
@@ -154,7 +211,9 @@ const calendarEvents = computed(() =>
         }
 
         // Занятие с несколькими инструкторами видно в колонке каждого из них.
-        return event.instructors.map((instructor) => ({ ...base, split: instructor.id }));
+        return event.instructors
+            .filter((instructor) => splitIds.value.has(instructor.id))
+            .map((instructor) => ({ ...base, split: instructor.id }));
     }),
 );
 
@@ -325,6 +384,30 @@ const onDurationChange = ({ event }) => {
 };
 
 const instructorName = (id) => instructorsById.value.get(id)?.name ?? '';
+
+/* ---------- Пустые состояния ---------- */
+
+/**
+ * Занятие нельзя создать без активного инструктора и без доступного типа. Пока их нет,
+ * над календарём написано, что добавить, и у администратора есть ссылка туда.
+ */
+const setupHints = computed(() =>
+    [
+        !props.instructors.some((instructor) => instructor.isActive) && {
+            text: 'Нет активных инструкторов: добавьте хотя бы одного, чтобы создавать занятия. В дневном виде у каждого инструктора будет своя колонка.',
+            href: page.props.can.manageInstructors ? '/instructors/create' : null,
+            linkLabel: 'Добавить инструктора',
+        },
+        !props.eventTypes.some((eventType) => eventType.isActive) && {
+            text: 'Нет доступных типов занятий: включите или добавьте хотя бы один, чтобы создавать занятия.',
+            href: page.props.can.manageEventTypes ? '/settings/event-types' : null,
+            linkLabel: 'Открыть типы занятий',
+        },
+    ].filter(Boolean),
+);
+
+/** Период загружен, и в нём ничего нет: с фильтрами это «ничего не нашли», без них — свободный период. */
+const isEmptyPeriod = computed(() => loaded.value && !loading.value && events.value.length === 0);
 </script>
 
 <template>
@@ -340,10 +423,40 @@ const instructorName = (id) => instructorsById.value.get(id)?.name ?? '';
             </button>
         </template>
 
+        <form class="mb-4 flex flex-wrap items-end gap-x-4 gap-y-3" aria-label="Фильтры календаря" @submit.prevent>
+            <FormField id="filter-instructor" label="Инструктор" class="w-full sm:w-56">
+                <SelectInput id="filter-instructor" v-model="instructorFilter">
+                    <option value="">Все инструкторы</option>
+                    <option v-for="instructor in instructors" :key="instructor.id" :value="instructor.id">
+                        {{ instructor.name }}{{ instructor.isActive ? '' : ' (отключён)' }}
+                    </option>
+                </SelectInput>
+            </FormField>
+
+            <FormField id="filter-type" label="Тип занятия" class="w-full sm:w-56">
+                <SelectInput id="filter-type" v-model="typeFilter">
+                    <option value="">Все типы</option>
+                    <option v-for="eventType in eventTypes" :key="eventType.id" :value="eventType.id">
+                        {{ eventType.name }}{{ eventType.isActive ? '' : ' (скрыт)' }}
+                    </option>
+                </SelectInput>
+            </FormField>
+
+            <button
+                v-if="hasFilters"
+                type="button"
+                class="pb-2 text-sm text-sea-700 underline-offset-4 hover:underline"
+                @click="resetFilters"
+            >
+                Сбросить фильтры
+            </button>
+        </form>
+
         <div class="mb-3 flex min-h-6 flex-wrap items-center justify-between gap-x-6 gap-y-2 text-sm">
             <p class="text-muted">
                 Выделите время мышью или дважды щёлкните по ячейке, чтобы создать занятие. Занятие можно перетащить и
                 растянуть.
+                <template v-if="isInstructor">Ваши занятия обведены рамкой.</template>
             </p>
             <p v-if="loading" class="text-muted" role="status">Загрузка…</p>
         </div>
@@ -358,10 +471,29 @@ const instructorName = (id) => instructorsById.value.get(id)?.name ?? '';
         </p>
 
         <div
-            v-if="activeView === 'day' && splits.length === 0"
+            v-for="hint in setupHints"
+            :key="hint.text"
             class="mb-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900"
         >
-            Нет активных инструкторов — колонки по инструкторам появятся, когда они будут добавлены.
+            {{ hint.text }}
+            <Link v-if="hint.href" :href="hint.href" class="ml-1 font-medium underline underline-offset-4">{{ hint.linkLabel }}</Link>
+        </div>
+
+        <div
+            v-if="isEmptyPeriod"
+            role="status"
+            class="mb-3 rounded-md border border-dashed border-line bg-white px-4 py-3 text-sm text-muted"
+        >
+            <template v-if="hasFilters">
+                По выбранным фильтрам в этот период занятий нет.
+                <button type="button" class="ml-1 text-sea-700 underline-offset-4 hover:underline" @click="resetFilters">
+                    Сбросить фильтры
+                </button>
+            </template>
+            <template v-else>
+                В этот период занятий нет.
+                <template v-if="canCreate">Создайте занятие кнопкой «Новое занятие» или выделите время в календаре.</template>
+            </template>
         </div>
 
         <div class="calendar h-[calc(100vh-14rem)] min-h-[34rem] overflow-hidden rounded-lg border border-line bg-white">
@@ -418,6 +550,7 @@ const instructorName = (id) => instructorsById.value.get(id)?.name ?? '';
                             color: textColorFor(event.raw.color || '#64748b'),
                         }"
                     >
+                        <span v-if="event.raw.isMine" class="sr-only">Ваше занятие. </span>
                         <template v-if="view === 'month'">
                             <span class="font-medium">{{ event.raw.start.slice(11) }}</span>
                             {{ event.title }}
@@ -557,8 +690,23 @@ const instructorName = (id) => instructorsById.value.get(id)?.name ?? '';
     text-decoration: line-through;
 }
 
+/* Своё занятие: двойная внутренняя рамка читается на любом цвете инструктора. */
+.calendar .vuecal__event.is-mine .event-card {
+    font-weight: 600;
+    box-shadow:
+        inset 0 0 0 2px var(--color-ink),
+        inset 0 0 0 3px rgb(255 255 255 / 0.85);
+}
+
 .calendar .vuecal__event--focus .event-card {
     box-shadow: 0 0 0 2px var(--color-ink);
+}
+
+.calendar .vuecal__event--focus.is-mine .event-card {
+    box-shadow:
+        0 0 0 2px var(--color-ink),
+        inset 0 0 0 2px var(--color-ink),
+        inset 0 0 0 3px rgb(255 255 255 / 0.85);
 }
 
 .calendar .vuecal__event-resize-handle {

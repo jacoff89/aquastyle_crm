@@ -7,6 +7,7 @@ use App\Enums\EventStatus;
 use App\Models\Event;
 use App\Models\EventType;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
@@ -15,7 +16,9 @@ use Inertia\Response;
 
 /**
  * The calendar page. Events themselves are loaded separately, for the visible
- * period only (see CalendarEventController).
+ * period only (see CalendarEventController). The page opens on the day, view and
+ * filters (`instructor_id`, `event_type_id`) given in the address, so a reload
+ * or a shared link shows the same calendar.
  */
 class CalendarController extends Controller
 {
@@ -31,6 +34,10 @@ class CalendarController extends Controller
         return Inertia::render('calendar/Index', [
             'initialDate' => $date,
             'initialView' => $view,
+            'initialFilters' => [
+                'instructorId' => $this->requestedId($request->query('instructor_id'), User::instructors()),
+                'eventTypeId' => $this->requestedId($request->query('event_type_id'), EventType::query()),
+            ],
             'instructors' => User::instructors()
                 ->orderByDesc('is_active')
                 ->orderBy('name')
@@ -57,6 +64,21 @@ class CalendarController extends Controller
             ]),
             'canCreate' => $request->user()->can('create', Event::class),
         ]);
+    }
+
+    /**
+     * The id from the query when it is a whole number of an existing record; null otherwise,
+     * so a stale or mistyped link opens the calendar without that filter.
+     *
+     * @param  Builder<User>|Builder<EventType>  $records
+     */
+    private function requestedId(mixed $id, Builder $records): ?int
+    {
+        if (! is_string($id) || filter_var($id, FILTER_VALIDATE_INT) === false) {
+            return null;
+        }
+
+        return $records->whereKey((int) $id)->exists() ? (int) $id : null;
     }
 
     /**

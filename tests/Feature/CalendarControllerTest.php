@@ -90,6 +90,60 @@ class CalendarControllerTest extends TestCase
                 ->where('initialView', 'day'));
     }
 
+    public function test_calendar_opens_without_filters_by_default(): void
+    {
+        $this->actingAs(User::factory()->admin()->create())
+            ->get('/calendar')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('initialFilters', ['instructorId' => null, 'eventTypeId' => null]));
+    }
+
+    public function test_calendar_opens_with_the_filters_from_the_address(): void
+    {
+        $instructor = User::factory()->inactive()->create();
+        $hiddenType = EventType::factory()->hidden()->create();
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->get("/calendar?instructor_id={$instructor->id}&event_type_id={$hiddenType->id}")
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('initialFilters', ['instructorId' => $instructor->id, 'eventTypeId' => $hiddenType->id]));
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function staleFilters(): array
+    {
+        return [
+            'unknown ids' => ['instructor_id=999999&event_type_id=999999'],
+            'not numbers' => ['instructor_id=anna&event_type_id=pool'],
+            'fractions' => ['instructor_id=1.5&event_type_id=1.5'],
+            'lists' => ['instructor_id[]=1&event_type_id[]=1'],
+            'empty' => ['instructor_id=&event_type_id='],
+        ];
+    }
+
+    #[DataProvider('staleFilters')]
+    public function test_stale_or_mistyped_filters_are_dropped(string $query): void
+    {
+        User::factory()->create();
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->get("/calendar?{$query}")
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('initialFilters', ['instructorId' => null, 'eventTypeId' => null]));
+    }
+
+    public function test_user_without_the_instructor_role_is_not_an_instructor_filter(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)
+            ->get("/calendar?instructor_id={$admin->id}")
+            ->assertInertia(fn (Assert $page) => $page->where('initialFilters.instructorId', null));
+    }
+
     public function test_invalid_date_and_view_fall_back_to_today_and_week(): void
     {
         Carbon::setTestNow('2026-11-04 09:00');

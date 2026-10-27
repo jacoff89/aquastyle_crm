@@ -13,6 +13,9 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /**
  * An event as the calendar shows and edits it. Expects `type` and `instructors` to be loaded.
  *
+ * `isMine` tells whether the current user takes part in the event, as lead or assistant:
+ * everyone sees the whole calendar, and the user's own events are marked in it.
+ *
  * @mixin Event
  */
 class CalendarEventResource extends JsonResource
@@ -54,6 +57,7 @@ class CalendarEventResource extends JsonResource
                     'roleLabel' => $instructor->pivot->role->label(),
                 ])
                 ->values(),
+            'isMine' => $this->instructors->contains('id', $request->user()?->id),
             'canUpdate' => $request->user()?->can('update', $this->resource) ?? false,
         ];
     }
