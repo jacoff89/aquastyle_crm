@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\EventType;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -52,6 +53,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'can' => [
                 'manageUsers' => $user?->can('viewAny', User::class) ?? false,
+                'manageEventTypes' => $user?->can('viewAny', EventType::class) ?? false,
             ],
             'flash' => [
                 'status' => fn () => $request->session()->get('status'),

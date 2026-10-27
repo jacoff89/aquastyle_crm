@@ -3,6 +3,7 @@ import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import AppIcon from '../components/AppIcon.vue';
 import AppLogo from '../components/AppLogo.vue';
+import SidebarLink from '../components/SidebarLink.vue';
 import StatusMessage from '../components/StatusMessage.vue';
 
 defineProps({
@@ -25,12 +26,10 @@ const sections = computed(() => [
 ]);
 
 const settings = computed(() =>
-    page.props.can.manageUsers
-        ? [
-              { label: 'Типы занятий', icon: 'types' },
-              { label: 'Пользователи', icon: 'users' },
-          ]
-        : [],
+    [
+        page.props.can.manageEventTypes && { label: 'Типы занятий', href: '/settings/event-types', icon: 'types' },
+        page.props.can.manageUsers && { label: 'Пользователи', href: '/settings/users', icon: 'users' },
+    ].filter(Boolean),
 );
 
 const isCurrent = (href) => href && (page.url === href || page.url.startsWith(`${href}/`) || page.url.startsWith(`${href}?`));
@@ -103,16 +102,9 @@ onBeforeUnmount(() => {
             <nav class="flex-1 space-y-8 px-3" aria-label="Основное меню">
                 <ul class="space-y-1">
                     <li v-for="item in sections" :key="item.label">
-                        <Link
-                            v-if="item.href"
-                            :href="item.href"
-                            class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
-                            :class="isCurrent(item.href) ? 'bg-depth-700 text-white' : 'hover:bg-depth-800 hover:text-white'"
-                            :aria-current="isCurrent(item.href) ? 'page' : undefined"
-                        >
-                            <AppIcon :name="item.icon" />
+                        <SidebarLink v-if="item.href" :href="item.href" :icon="item.icon" :current="isCurrent(item.href)">
                             {{ item.label }}
-                        </Link>
+                        </SidebarLink>
                         <span v-else class="flex items-center gap-3 px-3 py-2 text-sm text-depth-300/60" aria-disabled="true">
                             <AppIcon :name="item.icon" />
                             {{ item.label }}
@@ -125,11 +117,9 @@ onBeforeUnmount(() => {
                     <p class="px-3 pb-2 text-xs text-depth-300/80">Настройки</p>
                     <ul class="space-y-1">
                         <li v-for="item in settings" :key="item.label">
-                            <span class="flex items-center gap-3 px-3 py-2 text-sm text-depth-300/60" aria-disabled="true">
-                                <AppIcon :name="item.icon" />
+                            <SidebarLink :href="item.href" :icon="item.icon" :current="isCurrent(item.href)">
                                 {{ item.label }}
-                                <span class="ml-auto text-xs">скоро</span>
-                            </span>
+                            </SidebarLink>
                         </li>
                     </ul>
                 </div>
@@ -162,7 +152,10 @@ onBeforeUnmount(() => {
 
         <main class="min-w-0 flex-1 px-4 py-6 sm:px-8 lg:py-10">
             <div class="mx-auto max-w-6xl">
-                <h1 class="text-2xl font-semibold tracking-tight text-ink">{{ title }}</h1>
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <h1 class="text-2xl font-semibold tracking-tight text-ink">{{ title }}</h1>
+                    <slot name="actions" />
+                </div>
                 <StatusMessage :message="status" class="mt-4 max-w-xl" />
                 <div class="mt-6">
                     <slot />

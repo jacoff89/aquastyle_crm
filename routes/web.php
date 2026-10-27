@@ -5,6 +5,9 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Settings\EventTypeController;
+use App\Http\Controllers\Settings\EventTypePositionController;
+use App\Http\Controllers\Settings\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -28,6 +31,15 @@ Route::middleware('auth')->group(function () {
     Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::put('profile/password', [PasswordController::class, 'update'])->name('profile.password');
+
+    Route::prefix('settings')->name('settings.')->group(function () {
+        Route::get('event-types', [EventTypeController::class, 'index'])->name('event-types.index');
+        Route::post('event-types', [EventTypeController::class, 'store'])->name('event-types.store');
+        Route::patch('event-types/{eventType}', [EventTypeController::class, 'update'])->name('event-types.update');
+        Route::patch('event-types/{eventType}/position', [EventTypePositionController::class, 'update'])->name('event-types.position');
+
+        Route::resource('users', UserController::class)->except(['show', 'destroy']);
+    });
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 });
