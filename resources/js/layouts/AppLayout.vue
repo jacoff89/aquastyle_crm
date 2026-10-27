@@ -22,7 +22,7 @@ const menuOpen = ref(false);
 const sections = computed(() =>
     [
         { label: 'Календарь', href: '/calendar', icon: 'calendar' },
-        { label: 'Клиенты', icon: 'clients' },
+        { label: 'Клиенты', href: '/clients', icon: 'clients' },
         page.props.can.manageInstructors && { label: 'Инструкторы', href: '/instructors', icon: 'instructors' },
     ].filter(Boolean),
 );

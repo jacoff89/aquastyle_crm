@@ -191,6 +191,10 @@ return [
         'role' => 'Роль',
         'color' => 'Цвет',
         'notes' => 'Заметки',
+        'last_name' => 'Фамилия',
+        'first_name' => 'Имя',
+        'middle_name' => 'Отчество',
+        'birth_date' => 'Дата рождения',
     ],
 
 ];
