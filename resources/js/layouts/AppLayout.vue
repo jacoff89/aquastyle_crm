@@ -2,7 +2,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import AppIcon from '../components/AppIcon.vue';
-import DiveFlag from '../components/DiveFlag.vue';
+import AppLogo from '../components/AppLogo.vue';
 import StatusMessage from '../components/StatusMessage.vue';
 
 defineProps({
@@ -71,7 +71,7 @@ onBeforeUnmount(() => {
             >
                 <AppIcon name="menu" />
             </button>
-            <DiveFlag :size="24" />
+            <AppLogo size="small" />
             <span class="font-semibold text-white">{{ page.props.appName }}</span>
         </div>
 
@@ -86,12 +86,13 @@ onBeforeUnmount(() => {
             class="fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-depth-900 text-depth-300 transition-transform duration-200 lg:static lg:min-h-screen lg:translate-x-0 motion-reduce:transition-none"
             :class="menuOpen ? 'translate-x-0' : '-translate-x-full'"
         >
-            <div class="flex items-center gap-3 px-5 pt-6 pb-8">
-                <DiveFlag :size="32" />
-                <span class="text-base leading-tight font-semibold text-white">{{ page.props.appName }}</span>
+            <div class="flex items-start gap-2 px-4 pt-5 pb-7">
+                <Link href="/calendar" class="block flex-1 rounded-xl" :aria-label="`${page.props.appName}: календарь`">
+                    <AppLogo />
+                </Link>
                 <button
                     type="button"
-                    class="ml-auto rounded-md p-1 hover:bg-depth-800 hover:text-white lg:hidden"
+                    class="rounded-md p-1 hover:bg-depth-800 hover:text-white lg:hidden"
                     aria-label="Закрыть меню"
                     @click="menuOpen = false"
                 >
