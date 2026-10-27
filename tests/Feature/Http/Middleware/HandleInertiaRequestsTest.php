@@ -22,15 +22,17 @@ class HandleInertiaRequestsTest extends TestCase
                 ->where('auth.user.name', 'Анна Петрова')
                 ->where('auth.user.role', 'admin')
                 ->where('auth.user.roleLabel', 'Администратор')
-                ->where('can.manageUsers', true));
+                ->where('can.manageUsers', true)
+                ->where('can.manageEventTypes', true));
     }
 
-    public function test_instructor_does_not_get_user_management_in_the_menu(): void
+    public function test_instructor_does_not_get_settings_in_the_menu(): void
     {
         $this->actingAs(User::factory()->create())
             ->get('/calendar')
             ->assertInertia(fn (Assert $page) => $page
                 ->where('auth.user.roleLabel', 'Инструктор')
-                ->where('can.manageUsers', false));
+                ->where('can.manageUsers', false)
+                ->where('can.manageEventTypes', false));
     }
 }

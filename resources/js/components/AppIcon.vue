@@ -53,5 +53,14 @@ defineProps({
         <template v-else-if="name === 'close'">
             <path d="m6 6 12 12M18 6 6 18" />
         </template>
+        <template v-else-if="name === 'up'">
+            <path d="m6 14 6-6 6 6" />
+        </template>
+        <template v-else-if="name === 'down'">
+            <path d="m6 10 6 6 6-6" />
+        </template>
+        <template v-else-if="name === 'plus'">
+            <path d="M12 5v14M5 12h14" />
+        </template>
     </svg>
 </template>
