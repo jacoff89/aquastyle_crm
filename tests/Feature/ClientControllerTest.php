@@ -236,6 +236,50 @@ class ClientControllerTest extends TestCase
         $this->assertTrue($client->creator->is($user));
     }
 
+    public function test_client_can_be_added_with_a_json_request(): void
+    {
+        $user = $this->user(false);
+
+        $this->actingAs($user)
+            ->postJson('/clients', ['last_name' => 'Иванов', 'first_name' => 'Пётр', 'phone' => '+7 912 345-67-89'])
+            ->assertCreated()
+            ->assertJsonPath('client.name', 'Иванов Пётр')
+            ->assertJsonPath('client.phone', '+7 912 345-67-89')
+            ->assertJsonPath('client.id', Client::sole()->id)
+            ->assertJsonCount(3, 'client');
+
+        $this->assertTrue(Client::sole()->creator->is($user));
+    }
+
+    public function test_json_request_with_a_duplicate_phone_needs_confirmation(): void
+    {
+        Client::factory()->create(['phone' => '8 912 345-67-89']);
+        $payload = ['last_name' => 'Иванова', 'first_name' => 'Анна', 'phone' => '+7 912 345-67-89'];
+
+        $this->actingAs($this->user())
+            ->postJson('/clients', $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('phone');
+
+        $this->assertDatabaseCount('clients', 1);
+
+        $this->actingAs($this->user())
+            ->postJson('/clients', [...$payload, 'confirm_duplicate' => true])
+            ->assertCreated();
+
+        $this->assertDatabaseCount('clients', 2);
+    }
+
+    public function test_json_request_is_validated_like_the_form(): void
+    {
+        $this->actingAs($this->user())
+            ->postJson('/clients', [])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['last_name', 'first_name', 'phone']);
+
+        $this->assertDatabaseCount('clients', 0);
+    }
+
     public function test_only_last_name_first_name_and_phone_are_required(): void
     {
         $this->actingAs($this->user())

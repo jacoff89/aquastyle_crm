@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\AttendanceStatus;
 use App\Enums\EventStatus;
 use App\Models\Event;
 use App\Models\EventType;
@@ -48,6 +49,11 @@ class CalendarController extends Controller
             'statuses' => collect(EventStatus::cases())->map(fn (EventStatus $status): array => [
                 'value' => $status->value,
                 'label' => $status->label(),
+            ]),
+            'attendanceStatuses' => collect(AttendanceStatus::cases())->map(fn (AttendanceStatus $status): array => [
+                'value' => $status->value,
+                'label' => $status->label(),
+                'isAttendanceMark' => $status->isAttendanceMark(),
             ]),
             'canCreate' => $request->user()->can('create', Event::class),
         ]);

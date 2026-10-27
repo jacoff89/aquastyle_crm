@@ -44,6 +44,18 @@ class CalendarControllerTest extends TestCase
                 ->where('canCreate', true));
     }
 
+    public function test_calendar_offers_every_attendance_status(): void
+    {
+        $this->actingAs(User::factory()->create())
+            ->get('/calendar')
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('attendanceStatuses', 4)
+                ->where('attendanceStatuses.0', ['value' => 'booked', 'label' => 'Записан', 'isAttendanceMark' => false])
+                ->where('attendanceStatuses.1', ['value' => 'attended', 'label' => 'Пришёл', 'isAttendanceMark' => true])
+                ->where('attendanceStatuses.2', ['value' => 'no_show', 'label' => 'Не пришёл', 'isAttendanceMark' => true])
+                ->where('attendanceStatuses.3', ['value' => 'cancelled', 'label' => 'Отменил', 'isAttendanceMark' => false]));
+    }
+
     public function test_calendar_lists_instructors_active_first_and_every_event_type(): void
     {
         User::factory()->create(['name' => 'Яна', 'color' => '#0891b2']);

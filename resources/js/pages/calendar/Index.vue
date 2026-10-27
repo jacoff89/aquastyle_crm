@@ -12,6 +12,7 @@ const props = defineProps({
     instructors: { type: Array, required: true },
     eventTypes: { type: Array, required: true },
     statuses: { type: Array, required: true },
+    attendanceStatuses: { type: Array, required: true },
     canCreate: { type: Boolean, required: true },
 });
 
@@ -442,6 +443,8 @@ const instructorName = (id) => instructorsById.value.get(id)?.name ?? '';
             :instructors="instructors"
             :event-types="eventTypes"
             :statuses="statuses"
+            :attendance-statuses="attendanceStatuses"
+            :request="request"
             @saved="onSaved"
             @close="closeDialog"
         />
