@@ -2,8 +2,37 @@
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
+@source '../js/**/*.vue';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    --font-sans: 'Golos Text', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+
+    /* Глубина: фон бокового меню и тёмные поверхности */
+    --color-depth-950: #0a2c38;
+    --color-depth-900: #0e3a4a;
+    --color-depth-800: #13495c;
+    --color-depth-700: #1b5d73;
+    --color-depth-300: #9cc2cd;
+
+    /* Море: основной цвет действий */
+    --color-sea-50: #e8f4f6;
+    --color-sea-100: #cfe8ed;
+    --color-sea-600: #0f7c8f;
+    --color-sea-700: #0b6676;
+
+    /* Красный: фон логотипа и сообщения об ошибках */
+    --color-flag: #d7263d;
+
+    --color-surface: #f3f7f8;
+    --color-ink: #12262e;
+    --color-muted: #557079;
+    --color-line: #d5e1e4;
+}
+
+@layer base {
+    :focus-visible {
+        outline: 2px solid var(--color-sea-600);
+        outline-offset: 2px;
+    }
 }

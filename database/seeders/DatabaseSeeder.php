@@ -2,10 +2,15 @@
 
 namespace Database\Seeders;
 
+use App\Enums\Role;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
+/**
+ * Demo data for local development. On production the first administrator
+ * is created with `php artisan app:create-admin` instead.
+ */
 class DatabaseSeeder extends Seeder
 {
     use WithoutModelEvents;
@@ -15,11 +20,23 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        if (app()->isProduction()) {
+            $this->command?->warn('Демо-данные на production не создаются. Администратора создайте командой app:create-admin.');
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+            return;
+        }
+
+        $admin = User::firstOrCreate(['email' => 'admin@example.com'], [
+            'name' => 'Демо Администратор',
+            'password' => 'password',
+            'role' => Role::Admin,
         ]);
+
+        User::firstOrCreate(['email' => 'instructor@example.com'], [
+            'name' => 'Демо Инструктор',
+            'password' => 'password',
+            'role' => Role::Instructor,
+            'color' => '#0891b2',
+        ])->creator()->associate($admin)->save();
     }
 }
