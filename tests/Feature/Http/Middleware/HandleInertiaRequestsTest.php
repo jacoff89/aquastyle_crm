@@ -23,6 +23,7 @@ class HandleInertiaRequestsTest extends TestCase
                 ->where('auth.user.role', 'admin')
                 ->where('auth.user.roleLabel', 'Администратор')
                 ->where('can.manageUsers', true)
+                ->where('can.manageInstructors', true)
                 ->where('can.manageEventTypes', true));
     }
 
@@ -33,6 +34,7 @@ class HandleInertiaRequestsTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('auth.user.roleLabel', 'Инструктор')
                 ->where('can.manageUsers', false)
+                ->where('can.manageInstructors', false)
                 ->where('can.manageEventTypes', false));
     }
 }

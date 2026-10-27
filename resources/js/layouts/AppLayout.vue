@@ -17,13 +17,15 @@ const menuOpen = ref(false);
 
 /**
  * Разделы, которые появятся на следующих этапах, показаны без ссылки,
- * чтобы структура меню была видна сразу.
+ * чтобы структура меню была видна сразу. Инструкторов ведёт только администратор.
  */
-const sections = computed(() => [
-    { label: 'Календарь', href: '/calendar', icon: 'calendar' },
-    { label: 'Клиенты', icon: 'clients' },
-    { label: 'Инструкторы', icon: 'instructors' },
-]);
+const sections = computed(() =>
+    [
+        { label: 'Календарь', href: '/calendar', icon: 'calendar' },
+        { label: 'Клиенты', icon: 'clients' },
+        page.props.can.manageInstructors && { label: 'Инструкторы', href: '/instructors', icon: 'instructors' },
+    ].filter(Boolean),
+);
 
 const settings = computed(() =>
     [
