@@ -3,8 +3,11 @@
 namespace Tests\Feature;
 
 use App\Enums\Role;
+use App\Models\Event;
+use App\Models\EventType;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -179,6 +182,36 @@ class InstructorControllerTest extends TestCase
                 ->where('instructor.notes', 'Ведёт детские группы')
                 ->where('instructor.isActive', true)
                 ->missing('instructor.password'));
+    }
+
+    public function test_show_page_lists_the_schedule_for_the_next_two_weeks(): void
+    {
+        Carbon::setTestNow('2026-11-04 12:00');
+        $instructor = User::factory()->create();
+        $pool = EventType::factory()->create(['name' => 'Глубокий бассейн']);
+
+        Event::factory()->ledBy($instructor)->at('2026-11-03 10:00', '2026-11-03 11:00')->create(['title' => 'Вчера']);
+        Event::factory()->ledBy($instructor)->at('2026-11-04 09:00', '2026-11-04 10:00')->create(['title' => 'Сегодня утром']);
+        Event::factory()->ledBy(User::factory()->create(), [$instructor])->at('2026-11-06 18:00', '2026-11-06 19:30')
+            ->create(['event_type_id' => $pool->id, 'location' => 'Дельфин']);
+        Event::factory()->ledBy($instructor)->cancelled()->at('2026-11-10 10:00', '2026-11-10 11:00')->create(['title' => 'Отменённое']);
+        Event::factory()->ledBy($instructor)->at('2026-11-18 10:00', '2026-11-18 11:00')->create(['title' => 'Через две недели']);
+        Event::factory()->ledBy(User::factory()->create())->at('2026-11-05 10:00', '2026-11-05 11:00')->create(['title' => 'Чужое']);
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->get("/instructors/{$instructor->id}")
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('schedule', 3)
+                ->where('schedule.0.title', 'Сегодня утром')
+                ->where('schedule.0.role', 'Ведущий')
+                ->where('schedule.1.title', 'Глубокий бассейн')
+                ->where('schedule.1.date', '2026-11-06')
+                ->where('schedule.1.time', '18:00–19:30')
+                ->where('schedule.1.location', 'Дельфин')
+                ->where('schedule.1.role', 'Помощник')
+                ->where('schedule.2.title', 'Отменённое')
+                ->where('schedule.2.isCancelled', true)
+                ->where('schedule.2.statusLabel', 'Отменено'));
     }
 
     public function test_admin_account_is_not_found_among_instructors(): void

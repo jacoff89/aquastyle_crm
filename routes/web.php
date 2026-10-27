@@ -3,8 +3,11 @@
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\CalendarEventController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ClientDuplicateController;
+use App\Http\Controllers\EventController;
 use App\Http\Controllers\InstructorController;
 use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\ProfileController;
@@ -29,7 +32,11 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::redirect('/', '/calendar')->name('home');
 
-    Route::inertia('calendar', 'calendar/Index')->name('calendar');
+    Route::get('calendar', CalendarController::class)->name('calendar');
+    Route::get('calendar/events', CalendarEventController::class)->name('calendar.events');
+
+    Route::post('events', [EventController::class, 'store'])->name('events.store');
+    Route::patch('events/{event}', [EventController::class, 'update'])->name('events.update');
 
     Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('profile', [ProfileController::class, 'update'])->name('profile.update');
