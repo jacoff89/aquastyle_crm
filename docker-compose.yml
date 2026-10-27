@@ -52,7 +52,7 @@ services:
 
   nodejs:
     container_name: aquastyle_crm-nodejs
-    image: node:25
+    image: node:24
     environment:
       HTTP_PROXY: ${HTTP_PROXY}
       HTTPS_PROXY: ${HTTP_PROXY}

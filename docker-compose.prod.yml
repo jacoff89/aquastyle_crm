@@ -28,3 +28,19 @@ services:
     volumes:
       - .:/var/www/html
     restart: unless-stopped
+
+  # Сборка фронтенда. Запускается вручную и после сборки останавливается:
+  # docker compose -f docker-compose.prod.yml run --rm nodejs
+  nodejs:
+    container_name: aquastyle_crm-nodejs
+    image: node:24
+    profiles: ["build"]
+    environment:
+      HTTP_PROXY: ${HTTP_PROXY}
+      HTTPS_PROXY: ${HTTP_PROXY}
+      NO_PROXY: localhost,127.0.0.1,.local
+    working_dir: /var/www/html
+    user: "${UID}:${GID}"
+    command: ["sh", "-c", "npm ci && npm run build"]
+    volumes:
+      - .:/var/www/html
