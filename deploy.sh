@@ -1,37 +1,85 @@
 #!/usr/bin/env bash
-# Деплой прода: ./deploy.sh [ветка]  (по умолчанию main)
+# Деплой: сборка образа здесь → push в Docker Hub → pull и перезапуск на сервере по SSH.
+#   ./deploy.sh <prod|dev>          собрать и выкатить текущий коммит
+#   ./deploy.sh <prod|dev> <тег>    выкатить уже собранный тег без сборки (откат)
 set -euo pipefail
-
 cd "$(dirname "$0")"
-BRANCH="${1:-main}"
+
+ENV_NAME="${1:-}"
+case "$ENV_NAME" in
+  prod)
+    REPO="${PROD_REPO:-registry.yakov89.ru/aquastyle/crm-images/prod}"
+    SSH_HOST="${PROD_HOST:-aquastyle@89.169.0.212}"
+    SSH_PORT="${PROD_SSH_PORT:-22}"
+    REMOTE_DIR="${PROD_DIR:-/home/aquastyle/aquastyle_crm}"
+    REQUIRED_BRANCH="${DEPLOY_BRANCH:-main}"
+    ;;
+  dev)
+    REPO="${DEV_REPO:-registry.yakov89.ru/aquastyle/crm-images/dev}"
+    SSH_HOST="${DEV_HOST:-aquastyle@83.142.160.165}"
+    SSH_PORT="${DEV_SSH_PORT:-2622}"
+    REMOTE_DIR="${DEV_DIR:-/home/aquastyle/aquastyle_crm}"
+    REQUIRED_BRANCH="${DEPLOY_BRANCH:-dev}"
+    ;;
+  *)
+    echo "Использование: ./deploy.sh <prod|dev> [тег]" >&2
+    exit 1
+    ;;
+esac
+
+TAG="${2:-}"
+
+if [ -z "$TAG" ]; then
+  [ "$(git branch --show-current)" = "$REQUIRED_BRANCH" ] || { echo "✗ Для $ENV_NAME нужна ветка $REQUIRED_BRANCH" >&2; exit 1; }
+  [ -z "$(git status --porcelain)" ] || { echo "✗ Есть незакоммиченные изменения" >&2; exit 1; }
+  TAG="$(git rev-parse --short=10 HEAD)"
+
+  BUILD_ARGS=()
+  PROXY="${HTTP_PROXY:-$(grep -E '^HTTP_PROXY=' .env 2>/dev/null | cut -d= -f2- | tr -d "'\"" || true)}"
+  if [ -n "$PROXY" ]; then
+    BUILD_ARGS+=(--build-arg "HTTP_PROXY=$PROXY" --build-arg "HTTPS_PROXY=$PROXY")
+  fi
+
+  echo "→ build ($TAG)"
+  docker build --provenance=false --sbom=false -f .docker/prod/Dockerfile "${BUILD_ARGS[@]}" -t "$REPO:$TAG" .
+
+  echo "→ push"
+  docker push "$REPO:$TAG"
+fi
+
+echo "→ деплой $TAG на $ENV_NAME ($SSH_HOST, порт $SSH_PORT)"
+ssh -p "$SSH_PORT" "$SSH_HOST" "mkdir -p '$REMOTE_DIR/storage'"
+scp -q -P "$SSH_PORT" docker-compose.prod.yml "$SSH_HOST:$REMOTE_DIR/docker-compose.prod.yml"
+
+ssh -p "$SSH_PORT" "$SSH_HOST" bash -s -- "$REMOTE_DIR" "$REPO" "$TAG" <<'REMOTE'
+set -euo pipefail
+cd "$1"
+export DOCKER_REPO="$2" IMAGE_TAG="$3"
 DC="docker compose -f docker-compose.prod.yml"
-ARTISAN="$DC exec -T php-fpm php artisan"
+PREV="$(cat .current_tag 2>/dev/null || true)"
 
-echo "→ Maintenance mode"
-$ARTISAN down --retry=15 || true
-trap '$ARTISAN up || true' EXIT   # поднимем сайт даже если что-то упало
+$DC pull
+# миграции новым образом, пока старый контейнер ещё обслуживает сайт
+$DC run --rm --no-deps -T app php artisan migrate --force </dev/null
+$DC up -d --remove-orphans
 
-echo "→ git pull ($BRANCH)"
-git fetch origin "$BRANCH"
-git checkout "$BRANCH"
-git pull --ff-only origin "$BRANCH"
+PORT="$(grep -E '^NGINX_PORT=' .env | cut -d= -f2)"
+for _ in $(seq 1 30); do
+  if curl -fsS -o /dev/null "http://127.0.0.1:${PORT}/up"; then
+    echo "$IMAGE_TAG" > .current_tag
+    # оставляем 3 свежих образа, остальные удаляем
+    docker image ls "$DOCKER_REPO" -q | awk '!s[$0]++' | tail -n +4 | xargs -r docker rmi >/dev/null 2>&1 || true
+    echo "✓ Выкачено: $IMAGE_TAG"
+    exit 0
+  fi
+  sleep 2
+done
 
-echo "→ composer install"
-$DC exec -T php-fpm composer install --no-dev --optimize-autoloader --no-interaction
-
-echo "→ build frontend"
-$DC run --rm nodejs
-
-echo "→ remove node_modules"
-rm -rf node_modules
-
-echo "→ migrate"
-$ARTISAN migrate --force
-
-echo "→ caches"
-$ARTISAN optimize
-
-echo "→ restart php-fpm (сброс OPcache)"
-$DC restart php-fpm
-
-echo "✓ Deployed: $(git log -1 --oneline)"
+echo "✗ /up не отвечает" >&2
+$DC logs --tail=50 app >&2 || true
+if [ -n "$PREV" ]; then
+  echo "→ откат на $PREV" >&2
+  IMAGE_TAG="$PREV" $DC up -d
+fi
+exit 1
+REMOTE
