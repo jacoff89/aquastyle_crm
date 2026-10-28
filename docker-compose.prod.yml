@@ -27,6 +27,7 @@ services:
       NO_PROXY: localhost,127.0.0.1,.local
     volumes:
       - .:/var/www/html
+      - ./.docker/php-fpm/php-prod.ini:/etc/php/8.4/fpm/conf.d/99-prod.ini:ro
     restart: unless-stopped
 
   # Сборка фронтенда. Запускается вручную и после сборки останавливается:
@@ -39,6 +40,8 @@ services:
       HTTP_PROXY: ${HTTP_PROXY}
       HTTPS_PROXY: ${HTTP_PROXY}
       NO_PROXY: localhost,127.0.0.1,.local
+      HOME: /tmp
+      NPM_CONFIG_CACHE: /tmp/.npm
     working_dir: /var/www/html
     user: "${UID}:${GID}"
     command: ["sh", "-c", "npm ci && npm run build"]

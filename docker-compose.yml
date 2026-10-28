@@ -57,6 +57,8 @@ services:
       HTTP_PROXY: ${HTTP_PROXY}
       HTTPS_PROXY: ${HTTP_PROXY}
       NO_PROXY: localhost,127.0.0.1,.local
+      HOME: /tmp
+      NPM_CONFIG_CACHE: /tmp/.npm
     working_dir: /var/www/html
     user: "${UID}:${GID}"
     command: ["sh", "-c", "tail -f /dev/null"]
