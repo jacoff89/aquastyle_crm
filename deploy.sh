@@ -55,6 +55,10 @@ ssh -p "$SSH_PORT" "$SSH_HOST" bash -s -- "$REMOTE_DIR" "$REPO" "$TAG" <<'REMOTE
 set -euo pipefail
 cd "$1"
 export DOCKER_REPO="$2" IMAGE_TAG="$3"
+
+# пользователь в контейнере = пользователь хоста, под которым идёт деплой
+export HOST_UID="$(id -u)" HOST_GID="$(id -g)"
+
 DC="docker compose -f docker-compose.prod.yml"
 PREV="$(cat .current_tag 2>/dev/null || true)"
 
