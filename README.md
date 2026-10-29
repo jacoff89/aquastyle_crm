@@ -1,58 +1,180 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Аквастиль CRM
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel 13 + Inertia 3 + Vue 3 + Tailwind CSS 4 в Docker. CRM дайвинг-центра: календарь, клиенты, инструкторы.
 
-## About Laravel
+## Требования
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Docker
+- Docker Compose
+- GNU Make
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Настройка окружения
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+Создайте файл `.env` на основе `.env.example`:
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+cp .env.example .env
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Что стоит проверить в `.env`:
 
-## Contributing
+- `NGINX_PORT` — порт, на котором приложение будет доступно на хосте;
+- `MYSQL_PORT` — порт MySQL на хосте;
+- `VITE_PORT` — порт Vite dev-сервера (HMR);
+- `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` — параметры базы данных;
+- `HTTP_PROXY` — прокси для Composer и npm. В `.env.example` указан пример-заглушка: укажите свой прокси или оставьте значение пустым.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+`UID` и `GID` автоматически переопределяются Makefile значениями текущего пользователя.
 
-## Code of Conduct
+## Быстрый запуск
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Полная первоначальная настройка проекта:
 
-## Security Vulnerabilities
+```bash
+make setup
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Команда:
 
-## License
+1. загружает свежие Docker-образы;
+2. собирает Docker-контейнеры;
+3. запускает контейнеры;
+4. устанавливает Composer-зависимости;
+5. устанавливает npm-зависимости;
+6. генерирует `APP_KEY`, если он отсутствует;
+7. выполняет миграции базы данных.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+После запуска приложение доступно по адресу из `NGINX_PORT` в `.env`, например:
+
+```text
+http://localhost:3336
+```
+
+Создайте администратора:
+
+```bash
+make create-admin
+```
+
+Пароль вводится интерактивно.
+
+## Команды Make
+
+```bash
+make pull
+```
+
+Загрузить свежие версии Docker-образов.
+
+```bash
+make build
+```
+
+Собрать Docker-образы с UID и GID текущего пользователя.
+
+```bash
+make up
+```
+
+Запустить контейнеры и сгенерировать `APP_KEY`, если он пустой.
+
+```bash
+make down
+```
+
+Остановить контейнеры.
+
+```bash
+make composer-install
+```
+
+Установить PHP-зависимости через Composer.
+
+```bash
+make npm-install
+```
+
+Установить JavaScript-зависимости через npm.
+
+```bash
+make npm-build
+```
+
+Собрать фронтенд для production (`npm run build`).
+
+```bash
+make migrate
+```
+
+Запустить миграции базы данных.
+
+```bash
+make create-admin
+```
+
+Создать администратора (`php artisan app:create-admin`).
+
+```bash
+make test
+```
+
+Запустить тесты. Они используют SQLite в памяти и не затрагивают основную базу.
+
+```bash
+make pint
+```
+
+Привести PHP-код к стилю проекта через Laravel Pint.
+
+```bash
+make dev
+```
+
+Запустить Vite в dev-режиме с HMR.
+
+## Разработка
+
+Для работы с фронтендом запустите:
+
+```bash
+make dev
+```
+
+Vite слушает порт `VITE_PORT` (по умолчанию `5173`), изменения во Vue-компонентах и стилях подхватываются без перезагрузки страницы. Приложение при этом открывается по адресу `NGINX_PORT`.
+
+Если страница не показывает фронтенд-изменения или возникает ошибка `Unable to locate file in Vite manifest`, запустите `make dev` или `make npm-build`.
+
+Artisan и Composer можно запускать напрямую внутри контейнера:
+
+```bash
+docker compose exec php-fpm php artisan route:list
+docker compose exec php-fpm composer require <пакет>
+```
+
+## Деплой
+
+Деплой выполняется скриптом `deploy.sh`. Он собирает production-образ (`.docker/prod/Dockerfile`: nginx + php-fpm в одном образе), отправляет его в Container Registry, затем по SSH скачивает образ на сервере, применяет миграции и перезапускает контейнер. После перезапуска проверяется эндпоинт `/up`; если он не отвечает, происходит автоматический откат на предыдущий тег.
+
+```bash
+make deploy-dev
+```
+
+Собрать и выкатить текущий коммит на dev-сервер. Требуется ветка `dev`.
+
+```bash
+make deploy-prod
+```
+
+Собрать и выкатить текущий коммит на prod-сервер. Требуется ветка `main` и чистое рабочее дерево.
+
+Откат или повторная выкатка уже собранного образа без сборки:
+
+```bash
+make deploy-prod TAG=<тег>
+```
+
+Тег образа — короткий хеш коммита (10 символов).
+
+Параметры серверов (адрес, SSH-порт, каталог, репозиторий образов, ветка) задаются в `deploy.sh` и могут быть переопределены переменными окружения: `PROD_HOST`, `PROD_SSH_PORT`, `PROD_DIR`, `PROD_REPO`, `DEPLOY_BRANCH` и аналогичными `DEV_*`.
+
+На сервере рядом с `docker-compose.prod.yml` должен лежать `.env` с production-настройками (включая `NGINX_PORT`). Каталог `storage` монтируется с хоста, туда же пишутся логи и загруженные файлы.
