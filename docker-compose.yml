@@ -17,8 +17,8 @@ services:
     build:
       context: .docker/php-fpm
       args:
-        UID: ${UID}
-        GID: ${GID}
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
     environment:
       HTTP_PROXY: ${HTTP_PROXY}
       HTTPS_PROXY: ${HTTP_PROXY}
@@ -60,7 +60,7 @@ services:
       HOME: /tmp
       NPM_CONFIG_CACHE: /tmp/.npm
     working_dir: /var/www/html
-    user: "${UID}:${GID}"
+    user: "${UID:-1000}:${GID:-1000}"
     command: ["sh", "-c", "tail -f /dev/null"]
     volumes:
       - .:/var/www/html
