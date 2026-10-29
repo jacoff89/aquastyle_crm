@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Деплой: сборка образа здесь → push в Docker Hub → pull и перезапуск на сервере по SSH.
+# Деплой: сборка образа здесь → push в Container Registry → pull и перезапуск на сервере по SSH.
 #   ./deploy.sh <prod|dev>          собрать и выкатить текущий коммит
 #   ./deploy.sh <prod|dev> <тег>    выкатить уже собранный тег без сборки (откат)
 set -euo pipefail
