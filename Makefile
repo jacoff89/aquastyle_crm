@@ -48,9 +48,10 @@ dev: up
 	$(compose-env) exec nodejs npm run dev
 
 # Деплой: сборка образа и push в registry, затем pull и перезапуск на сервере по SSH.
+# Ветка для dev: make deploy-dev BRANCH=<ветка> (по умолчанию dev)
 # Откат на уже собранный образ: make deploy-prod TAG=<тег>
 deploy-dev:
-	./deploy.sh dev $(TAG)
+	./deploy.sh dev $(if $(TAG),--tag $(TAG),$(BRANCH))
 
 deploy-prod:
-	./deploy.sh prod $(TAG)
+	./deploy.sh prod $(if $(TAG),--tag $(TAG))
