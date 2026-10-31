@@ -11,7 +11,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * An event as the calendar shows and edits it. Expects `type` and `instructors` to be loaded.
+ * An event as the calendar shows and edits it. Expects `type` and `instructors` to be loaded, and the `occupied_places` count
+ * (see Event::withOccupiedPlacesCount()).
  *
  * `isMine` tells whether the current user takes part in the event, as lead or assistant:
  * everyone sees the whole calendar, and the user's own events are marked in it.
@@ -37,6 +38,7 @@ class CalendarEventResource extends JsonResource
             'end' => $this->ends_at->format(EventRequest::DATETIME_FORMAT),
             'location' => $this->location,
             'capacity' => $this->capacity,
+            'occupiedPlaces' => (int) $this->occupied_places,
             'status' => $this->status->value,
             'statusLabel' => $this->status->label(),
             'isCancelled' => $this->status === EventStatus::Cancelled,

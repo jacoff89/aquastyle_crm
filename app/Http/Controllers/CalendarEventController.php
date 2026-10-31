@@ -50,6 +50,7 @@ class CalendarEventController extends Controller
 
         $events = Event::query()
             ->with(['type', 'instructors'])
+            ->withOccupiedPlacesCount()
             ->overlapping($start, $end)
             ->when($request->filled('instructor_id'), fn (Builder $query) => $query->withInstructor($request->integer('instructor_id')))
             ->when($request->filled('event_type_id'), fn (Builder $query) => $query->where('event_type_id', $request->integer('event_type_id')))

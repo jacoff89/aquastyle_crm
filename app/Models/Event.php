@@ -136,6 +136,25 @@ class Event extends Model
     }
 
     /**
+     * Adds the `occupied_places` count to the query, the same number occupiedPlaces() gives.
+     *
+     * @param  Builder<Event>  $query
+     */
+    #[Scope]
+    protected function withOccupiedPlacesCount(Builder $query): void
+    {
+        $query->withCount(['bookings as occupied_places' => fn (Builder $bookings) => $bookings->whereIn('status', AttendanceStatus::occupyingValues())]);
+    }
+
+    /**
+     * Loads the `occupied_places` count onto an event that is already fetched.
+     */
+    public function loadOccupiedPlacesCount(): static
+    {
+        return $this->loadCount(['bookings as occupied_places' => fn (Builder $bookings) => $bookings->whereIn('status', AttendanceStatus::occupyingValues())]);
+    }
+
+    /**
      * Whether another client fits. An event without a capacity has no limit.
      */
     public function hasFreePlace(): bool

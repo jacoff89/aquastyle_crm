@@ -264,6 +264,18 @@ const createFromButton = () => {
     openNew(draftAt(Number.isNaN(date.getTime()) ? new Date() : date, null, false));
 };
 
+/** Открывает выбранный день в дневном виде. */
+const openDay = (date) => {
+    selectedDate.value = formatDate(date);
+    activeView.value = 'day';
+};
+
+const onCellClick = (payload) => {
+    if (activeView.value === 'month') {
+        openDay(payload instanceof Date ? payload : payload.date);
+    }
+};
+
 let lastEventClickAt = 0;
 
 const onEventClick = (event) => {
@@ -515,7 +527,7 @@ const isEmptyPeriod = computed(() => loaded.value && !loading.value && events.va
                 :cell-click-hold="false"
                 :drag-to-create-event="canCreate"
                 :dblclick-to-navigate="false"
-                :click-to-navigate="activeView === 'month'"
+                :click-to-navigate="false"
                 events-on-month-view
                 :watch-real-time="true"
                 today-button
@@ -523,6 +535,7 @@ const isEmptyPeriod = computed(() => loaded.value && !loading.value && events.va
                 :on-event-create="onEventCreate"
                 @ready="onViewChange"
                 @view-change="onViewChange"
+                @cell-click="onCellClick"
                 @cell-dblclick="onCellDblclick"
                 @event-drag-create="onEventDragCreate"
                 @event-drop="onEventDrop"
@@ -533,6 +546,20 @@ const isEmptyPeriod = computed(() => loaded.value && !loading.value && events.va
                         <span class="size-2.5 shrink-0 rounded-full" :style="{ backgroundColor: split.color || '#94a3b8' }" aria-hidden="true" />
                         <span class="truncate">{{ split.label }}</span>
                     </span>
+                </template>
+
+                <template #weekday-heading="{ heading, view }">
+                    <button
+                        v-if="view.id === 'week'"
+                        type="button"
+                        class="cursor-pointer underline-offset-4 hover:underline"
+                        @click.stop="openDay(heading.date)"
+                    >
+                        <span class="hidden sm:inline">{{ heading.label }}</span>
+                        <span class="sm:hidden">{{ heading.label.slice(0, 3) }}</span>
+                        {{ heading.date.getDate() }}
+                    </button>
+                    <template v-else>{{ heading.label }}</template>
                 </template>
 
                 <template #no-event>
@@ -559,6 +586,9 @@ const isEmptyPeriod = computed(() => loaded.value && !loading.value && events.va
                             <p class="truncate font-medium">{{ event.title }}</p>
                             <p class="truncate opacity-90">{{ event.raw.start.slice(11) }}–{{ event.raw.end.slice(11) }}</p>
                             <p v-if="event.raw.location" class="truncate opacity-90">{{ event.raw.location }}</p>
+                            <p class="truncate opacity-90">
+                                ({{ event.raw.occupiedPlaces }}<template v-if="event.raw.capacity !== null"> из {{ event.raw.capacity }}</template> чел.)
+                            </p>
                             <p v-if="view !== 'day' || event.raw.instructors.length > 1" class="truncate opacity-90">
                                 {{ event.raw.instructors.map((instructor) => instructor.name).join(', ') }}
                             </p>

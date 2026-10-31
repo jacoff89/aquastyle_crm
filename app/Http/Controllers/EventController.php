@@ -37,7 +37,7 @@ class EventController extends Controller
             return $event;
         });
 
-        return CalendarEventResource::make($event->load(['type', 'instructors']))
+        return CalendarEventResource::make($event->load(['type', 'instructors'])->loadOccupiedPlacesCount())
             ->response()
             ->setStatusCode(201);
     }
@@ -55,7 +55,7 @@ class EventController extends Controller
             $event->assignInstructors($request->leadInstructorId(), $request->assistantIds());
         });
 
-        return CalendarEventResource::make($event->load(['type', 'instructors']))->response();
+        return CalendarEventResource::make($event->load(['type', 'instructors'])->loadOccupiedPlacesCount())->response();
     }
 
     /**
