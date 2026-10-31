@@ -19,6 +19,8 @@ use Illuminate\Validation\Validator;
  * application time zone, as "Y-m-d H:i". Hidden event types and deactivated instructors
  * are not offered for new events, but an event that already has them keeps them.
  *
+ * An event may have no instructor yet; assistants need a lead instructor.
+ *
  * A clash with another event of the same instructor is not checked here: it is
  * a warning the controller shows, and `confirm_conflicts` saves the event anyway.
  */
@@ -46,8 +48,8 @@ abstract class EventRequest extends FormRequest
             'location' => ['nullable', 'string', 'max:255'],
             'capacity' => ['nullable', 'integer', 'min:1', 'max:500'],
             'notes' => ['nullable', 'string', 'max:2000'],
-            'lead_instructor_id' => ['required', 'integer', $this->instructorRule()],
-            'assistant_ids' => ['array', 'max:20'],
+            'lead_instructor_id' => ['nullable', 'integer', $this->instructorRule()],
+            'assistant_ids' => ['array', 'max:20', 'prohibited_if:lead_instructor_id,null'],
             'assistant_ids.*' => ['integer', 'distinct', 'different:lead_instructor_id', $this->instructorRule()],
             'confirm_conflicts' => ['boolean'],
         ];
@@ -60,8 +62,8 @@ abstract class EventRequest extends FormRequest
     {
         return [
             'event_type_id.exists' => 'Выберите тип занятия из списка.',
-            'lead_instructor_id.required' => 'Выберите ведущего инструктора.',
             'lead_instructor_id.exists' => 'Ведущий инструктор не найден или отключён.',
+            'assistant_ids.prohibited_if' => 'Помощников можно назначить только вместе с ведущим инструктором.',
             'assistant_ids.*.exists' => 'Помощник не найден или отключён.',
             'assistant_ids.*.different' => 'Ведущий инструктор не может быть одновременно помощником.',
             'ends_at.after' => 'Занятие должно заканчиваться позже, чем начинается.',
@@ -96,9 +98,9 @@ abstract class EventRequest extends FormRequest
         return Carbon::createFromFormat(self::DATETIME_FORMAT, $this->string('ends_at')->toString())->startOfMinute();
     }
 
-    public function leadInstructorId(): int
+    public function leadInstructorId(): ?int
     {
-        return $this->integer('lead_instructor_id');
+        return $this->filled('lead_instructor_id') ? $this->integer('lead_instructor_id') : null;
     }
 
     /**
@@ -110,13 +112,15 @@ abstract class EventRequest extends FormRequest
     }
 
     /**
-     * Every instructor of the event, lead first.
+     * Every instructor of the event, lead first. Empty for an event without instructors.
      *
      * @return list<int>
      */
     public function instructorIds(): array
     {
-        return array_values(array_unique([$this->leadInstructorId(), ...$this->assistantIds()]));
+        $leadId = $this->leadInstructorId();
+
+        return $leadId === null ? [] : array_values(array_unique([$leadId, ...$this->assistantIds()]));
     }
 
     /**

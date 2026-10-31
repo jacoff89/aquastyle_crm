@@ -53,6 +53,7 @@ class CalendarEventControllerTest extends TestCase
                 'end' => '2026-11-04 11:30',
                 'location' => 'Дельфин',
                 'capacity' => 4,
+                'occupiedPlaces' => 0,
                 'status' => 'planned',
                 'statusLabel' => 'Запланировано',
                 'isCancelled' => false,

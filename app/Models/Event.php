@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * A class in the calendar. It has one lead instructor and any number of assistants;
+ * A class in the calendar. It has at most one lead instructor and any number of assistants;
  * its colour in the calendar is the lead instructor's colour. Clients are booked on it,
  * up to its capacity when it has one.
  *
@@ -109,17 +109,22 @@ class Event extends Model
 
     /**
      * Replace the event's instructors with the given lead and assistants.
-     * The lead is never also counted as an assistant.
+     * The lead is never also counted as an assistant. Without a lead the event
+     * has no instructors at all.
      *
      * @param  list<int>  $assistantIds
      */
-    public function assignInstructors(int $leadId, array $assistantIds = []): void
+    public function assignInstructors(?int $leadId, array $assistantIds = []): void
     {
-        $instructors = [$leadId => ['role' => InstructorRole::Lead->value]];
+        $instructors = [];
 
-        foreach (array_unique($assistantIds) as $assistantId) {
-            if ($assistantId !== $leadId) {
-                $instructors[$assistantId] = ['role' => InstructorRole::Assistant->value];
+        if ($leadId !== null) {
+            $instructors[$leadId] = ['role' => InstructorRole::Lead->value];
+
+            foreach (array_unique($assistantIds) as $assistantId) {
+                if ($assistantId !== $leadId) {
+                    $instructors[$assistantId] = ['role' => InstructorRole::Assistant->value];
+                }
             }
         }
 

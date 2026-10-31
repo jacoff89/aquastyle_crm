@@ -73,7 +73,7 @@ form.transform((data) => ({
     location: data.location,
     capacity: data.capacity === '' ? null : Number(data.capacity),
     lead_instructor_id: data.lead_instructor_id === '' ? null : data.lead_instructor_id,
-    assistant_ids: data.assistant_ids.filter((id) => id !== data.lead_instructor_id),
+    assistant_ids: data.lead_instructor_id === '' ? [] : data.assistant_ids.filter((id) => id !== data.lead_instructor_id),
     ...(isEditing.value ? { status: data.status } : {}),
     notes: data.notes,
     confirm_conflicts: data.confirm_conflicts,
@@ -291,17 +291,16 @@ onMounted(() => {
                         <SelectInput
                             id="lead_instructor_id"
                             v-model="form.lead_instructor_id"
-                            required
                             :invalid="Boolean(form.errors.lead_instructor_id)"
                         >
-                            <option value="" disabled>Выберите инструктора</option>
+                            <option value="">Без инструктора</option>
                             <option v-for="instructor in instructorOptions" :key="instructor.id" :value="instructor.id">
                                 {{ instructor.name }}{{ instructor.isActive ? '' : ' (отключён)' }}
                             </option>
                         </SelectInput>
                     </FormField>
 
-                    <fieldset v-if="assistantOptions.length">
+                    <fieldset v-if="form.lead_instructor_id !== '' && assistantOptions.length">
                         <legend class="text-sm font-medium text-ink">Помощники</legend>
                         <div class="mt-2 flex flex-wrap gap-x-5 gap-y-2">
                             <label v-for="instructor in assistantOptions" :key="instructor.id" class="flex items-center gap-2 text-sm">

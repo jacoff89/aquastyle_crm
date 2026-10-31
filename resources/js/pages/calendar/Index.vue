@@ -155,11 +155,17 @@ const resetFilters = () => {
 
 /* ---------- Инструкторы и колонки дневного вида ---------- */
 
+/** Колонка занятий без инструктора в дневном виде. */
+const UNASSIGNED = 'unassigned';
+
+/** Инструктор, которому принадлежит колонка; у колонки «Без инструктора» его нет. */
+const instructorOfSplit = (split) => (split === UNASSIGNED ? null : (split ?? null));
+
 const instructorsById = computed(() => new Map(props.instructors.map((instructor) => [instructor.id, instructor])));
 
 /**
  * В дневном виде у каждого инструктора своя колонка; с фильтром по инструктору
- * остаётся одна. Отключённые инструкторы получают колонку, только если у них есть
+ * остаётся одна. В конце стоит колонка занятий без инструктора. Отключённые инструкторы получают колонку, только если у них есть
  * занятия в этот день.
  */
 const splits = computed(() => {
@@ -169,10 +175,16 @@ const splits = computed(() => {
 
     const busyIds = new Set(events.value.flatMap((event) => event.instructors.map((instructor) => instructor.id)));
 
-    return props.instructors
+    const columns = props.instructors
         .filter((instructor) => instructorFilter.value === '' || instructor.id === instructorFilter.value)
         .filter((instructor) => instructor.isActive || busyIds.has(instructor.id))
         .map((instructor) => ({ id: instructor.id, label: instructor.name, color: instructor.color }));
+
+    if (instructorFilter.value === '') {
+        columns.push({ id: UNASSIGNED, label: 'Без инструктора', color: null });
+    }
+
+    return columns;
 });
 
 const splitIds = computed(() => new Set(splits.value.map((split) => split.id)));
@@ -208,6 +220,10 @@ const calendarEvents = computed(() =>
 
         if (splits.value.length === 0) {
             return [base];
+        }
+
+        if (event.instructors.length === 0) {
+            return splitIds.value.has(UNASSIGNED) ? [{ ...base, split: UNASSIGNED }] : [];
         }
 
         // Занятие с несколькими инструкторами видно в колонке каждого из них.
@@ -256,7 +272,7 @@ const draftAt = (date, split, withTime) => {
 
     const end = new Date(start.getTime() + 60 * 60 * 1000);
 
-    return { start: formatDateTime(start), end: formatDateTime(end), leadInstructorId: split ?? null };
+    return { start: formatDateTime(start), end: formatDateTime(end), leadInstructorId: instructorOfSplit(split) };
 };
 
 const createFromButton = () => {
@@ -309,7 +325,7 @@ const onEventDragCreate = (event) => {
     setTimeout(() => {
         removeDraggedEvent?.();
         removeDraggedEvent = null;
-        openNew({ start: formatDateTime(event.start), end: formatDateTime(event.end), leadInstructorId: event.split ?? null });
+        openNew({ start: formatDateTime(event.start), end: formatDateTime(event.end), leadInstructorId: instructorOfSplit(event.split) });
     });
 };
 
@@ -371,6 +387,17 @@ const cancelMove = () => {
 const instructorsAfterMove = (event, oldSplit, newSplit) => {
     if (newSplit == null || oldSplit === newSplit || event.instructors.some((instructor) => instructor.id === newSplit)) {
         return {};
+    }
+
+    if (newSplit === UNASSIGNED) {
+        // Без ведущего помощников не бывает: ведущий уходит — занятие остаётся совсем без инструкторов.
+        return event.leadInstructorId === oldSplit
+            ? { lead_instructor_id: null, assistant_ids: [] }
+            : { assistant_ids: event.assistantIds.filter((id) => id !== oldSplit) };
+    }
+
+    if (oldSplit === UNASSIGNED) {
+        return { lead_instructor_id: newSplit };
     }
 
     if (event.leadInstructorId === oldSplit) {
@@ -625,7 +652,10 @@ const isEmptyPeriod = computed(() => loaded.value && !loading.value && events.va
                     <span class="font-medium">{{ conflict.instructor }}</span> — {{ conflict.title }}, {{ conflict.time }}
                 </li>
             </ul>
-            <p v-if="confirmation.payload.lead_instructor_id !== confirmation.event.leadInstructorId" class="mt-3 text-sm">
+            <p
+                v-if="confirmation.payload.lead_instructor_id && confirmation.payload.lead_instructor_id !== confirmation.event.leadInstructorId"
+                class="mt-3 text-sm"
+            >
                 Ведущим станет {{ instructorName(confirmation.payload.lead_instructor_id) }}.
             </p>
             <div class="mt-5 flex items-center gap-4">

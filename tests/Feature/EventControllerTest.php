@@ -99,6 +99,41 @@ class EventControllerTest extends TestCase
         $this->assertDatabaseCount('events', 0);
     }
 
+    public function test_event_can_be_created_without_instructors(): void
+    {
+        $this->actingAs($this->admin())
+            ->postJson('/events', $this->validPayload(['lead_instructor_id' => null]))
+            ->assertCreated()
+            ->assertJsonPath('data.leadInstructorId', null)
+            ->assertJsonPath('data.color', null)
+            ->assertJsonPath('data.instructors', []);
+
+        $this->assertDatabaseCount('event_instructor', 0);
+    }
+
+    public function test_assistants_need_a_lead_instructor(): void
+    {
+        $assistant = User::factory()->create();
+
+        $this->actingAs($this->admin())
+            ->postJson('/events', $this->validPayload(['lead_instructor_id' => null, 'assistant_ids' => [$assistant->id]]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('assistant_ids');
+    }
+
+    public function test_instructors_can_be_removed_from_an_event(): void
+    {
+        $event = Event::factory()->create();
+        $event->assignInstructors(User::factory()->create()->id);
+
+        $this->actingAs($this->admin())
+            ->patchJson("/events/{$event->id}", $this->payloadOf($event, ['lead_instructor_id' => null, 'assistant_ids' => []]))
+            ->assertOk()
+            ->assertJsonPath('data.instructors', []);
+
+        $this->assertDatabaseCount('event_instructor', 0);
+    }
+
     /**
      * @return array<string, array{array<string, mixed>, string}>
      */
@@ -114,7 +149,6 @@ class EventControllerTest extends TestCase
             'longer than a day' => [['ends_at' => '2026-11-04 10:30'], 'ends_at'],
             'zero places' => [['capacity' => 0], 'capacity'],
             'too long title' => [['title' => str_repeat('а', 256)], 'title'],
-            'no lead' => [['lead_instructor_id' => null], 'lead_instructor_id'],
             'unknown lead' => [['lead_instructor_id' => 999], 'lead_instructor_id'],
             'assistants not a list' => [['assistant_ids' => 'все'], 'assistant_ids'],
         ];
@@ -465,7 +499,7 @@ class EventControllerTest extends TestCase
             'capacity' => $event->capacity,
             'notes' => $event->notes,
             'status' => $event->status->value,
-            'lead_instructor_id' => $event->leadInstructor()->id,
+            'lead_instructor_id' => $event->leadInstructor()?->id,
             'assistant_ids' => $event->instructors->filter(fn (User $user) => $user->pivot->role === InstructorRole::Assistant)->pluck('id')->values()->all(),
             ...$override,
         ];
