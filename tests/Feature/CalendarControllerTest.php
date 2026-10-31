@@ -29,7 +29,7 @@ class CalendarControllerTest extends TestCase
     }
 
     #[DataProvider('everyRole')]
-    public function test_every_role_opens_the_calendar_on_this_week(bool $isAdmin): void
+    public function test_every_role_opens_the_calendar_on_this_month(bool $isAdmin): void
     {
         Carbon::setTestNow('2026-11-04 09:00');
         $user = $isAdmin ? User::factory()->admin()->create() : User::factory()->create(['name' => 'Яна']);
@@ -40,7 +40,7 @@ class CalendarControllerTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('calendar/Index')
                 ->where('initialDate', '2026-11-04')
-                ->where('initialView', 'week')
+                ->where('initialView', 'month')
                 ->where('canCreate', true));
     }
 
@@ -144,7 +144,7 @@ class CalendarControllerTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page->where('initialFilters.instructorId', null));
     }
 
-    public function test_invalid_date_and_view_fall_back_to_today_and_week(): void
+    public function test_invalid_date_and_view_fall_back_to_today_and_month(): void
     {
         Carbon::setTestNow('2026-11-04 09:00');
 
@@ -152,6 +152,6 @@ class CalendarControllerTest extends TestCase
             ->get('/calendar?date=2026-02-31&view=year')
             ->assertInertia(fn (Assert $page) => $page
                 ->where('initialDate', '2026-11-04')
-                ->where('initialView', 'week'));
+                ->where('initialView', 'month'));
     }
 }

@@ -29,7 +29,7 @@ class CalendarController extends Controller
         Gate::authorize('viewAny', Event::class);
 
         $date = $this->requestedDate($request->query('date'));
-        $view = in_array($request->query('view'), self::VIEWS, true) ? $request->query('view') : 'week';
+        $view = in_array($request->query('view'), self::VIEWS, true) ? $request->query('view') : 'month';
 
         return Inertia::render('calendar/Index', [
             'initialDate' => $date,
