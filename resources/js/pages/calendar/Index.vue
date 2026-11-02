@@ -1,6 +1,6 @@
 <script setup>
 import { Link, http, usePage } from '@inertiajs/vue3';
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import VueCal from 'vue-cal';
 import 'vue-cal/dist/vuecal.css';
 import EventDialog from '../../components/EventDialog.vue';
@@ -281,6 +281,18 @@ const createFromButton = () => {
 };
 
 /** Открывает выбранный день в дневном виде. */
+const shortWeekdays = {
+    понедельник: 'пн',
+    вторник: 'вт',
+    среда: 'ср',
+    четверг: 'чт',
+    пятница: 'пт',
+    суббота: 'сб',
+    воскресенье: 'вс',
+};
+
+const shortWeekday = (heading) => shortWeekdays[heading.label.toLowerCase()] ?? heading.label.slice(0, 2).toLowerCase();
+
 const openDay = (date) => {
     selectedDate.value = formatDate(date);
     activeView.value = 'day';
@@ -445,6 +457,15 @@ const setupHints = computed(() =>
     ].filter(Boolean),
 );
 
+const mobileQuery = typeof window === 'undefined' ? null : window.matchMedia('(max-width: 639px)');
+const isMobile = ref(mobileQuery?.matches ?? false);
+const updateIsMobile = (event) => {
+    isMobile.value = event.matches;
+};
+
+onMounted(() => mobileQuery?.addEventListener('change', updateIsMobile));
+onBeforeUnmount(() => mobileQuery?.removeEventListener('change', updateIsMobile));
+
 /** Период загружен, и в нём ничего нет: с фильтрами это «ничего не нашли», без них — свободный период. */
 const isEmptyPeriod = computed(() => loaded.value && !loading.value && events.value.length === 0);
 </script>
@@ -462,7 +483,7 @@ const isEmptyPeriod = computed(() => loaded.value && !loading.value && events.va
             </button>
         </template>
 
-        <form class="mb-4 flex flex-wrap items-end gap-x-4 gap-y-3" aria-label="Фильтры календаря" @submit.prevent>
+        <form class="mb-2 flex flex-wrap sm:mb-4 items-end gap-x-4 gap-y-3" aria-label="Фильтры календаря" @submit.prevent>
             <FormField id="filter-instructor" label="Инструктор" class="w-full sm:w-56">
                 <SelectInput id="filter-instructor" v-model="instructorFilter">
                     <option value="">Все инструкторы</option>
@@ -491,8 +512,8 @@ const isEmptyPeriod = computed(() => loaded.value && !loading.value && events.va
             </button>
         </form>
 
-        <div class="mb-3 flex min-h-6 flex-wrap items-center justify-between gap-x-6 gap-y-2 text-sm">
-            <p class="text-muted">
+        <div class="flex flex-wrap sm:mb-3 sm:min-h-6 items-center justify-between gap-x-6 gap-y-2 text-sm">
+            <p class="hidden text-muted sm:block">
                 Выделите время мышью или дважды щёлкните по ячейке, чтобы создать занятие. Занятие можно перетащить и
                 растянуть.
                 <template v-if="isInstructor">Ваши занятия обведены рамкой.</template>
@@ -521,7 +542,7 @@ const isEmptyPeriod = computed(() => loaded.value && !loading.value && events.va
         <div
             v-if="isEmptyPeriod"
             role="status"
-            class="mb-3 rounded-md border border-dashed border-line bg-white px-4 py-3 text-sm text-muted"
+            class="mb-3 hidden rounded-md border border-dashed border-line bg-white px-4 py-3 text-sm text-muted sm:block"
         >
             <template v-if="hasFilters">
                 По выбранным фильтрам в этот период занятий нет.
@@ -552,7 +573,7 @@ const isEmptyPeriod = computed(() => loaded.value && !loading.value && events.va
                 :snap-to-time="15"
                 :editable-events="{ title: false, drag: true, resize: true, delete: false, create: canCreate }"
                 :cell-click-hold="false"
-                :drag-to-create-event="canCreate"
+                :drag-to-create-event="canCreate && !isMobile"
                 :dblclick-to-navigate="false"
                 :click-to-navigate="false"
                 events-on-month-view
@@ -575,6 +596,14 @@ const isEmptyPeriod = computed(() => loaded.value && !loading.value && events.va
                     </span>
                 </template>
 
+                <template #title="{ title, view }">
+                    <template v-if="view.id === 'week'">
+                        <span class="hidden sm:inline">{{ title }}</span>
+                        <span class="sm:hidden">{{ title.replace(/^[^(]*\(([^)]*)\)$/, '$1') }}</span>
+                    </template>
+                    <template v-else>{{ title }}</template>
+                </template>
+
                 <template #weekday-heading="{ heading, view }">
                     <button
                         v-if="view.id === 'week'"
@@ -583,10 +612,13 @@ const isEmptyPeriod = computed(() => loaded.value && !loading.value && events.va
                         @click.stop="openDay(heading.date)"
                     >
                         <span class="hidden sm:inline">{{ heading.label }}</span>
-                        <span class="sm:hidden">{{ heading.label.slice(0, 3) }}</span>
+                        <span class="sm:hidden">{{ shortWeekday(heading) }}</span>
                         {{ heading.date.getDate() }}
                     </button>
-                    <template v-else>{{ heading.label }}</template>
+                    <template v-else>
+                        <span class="hidden sm:inline">{{ heading.label }}</span>
+                        <span class="sm:hidden">{{ shortWeekday(heading) }}</span>
+                    </template>
                 </template>
 
                 <template #no-event>
