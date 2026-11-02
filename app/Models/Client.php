@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -19,8 +20,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  *
  * The phone is the main key for search and for finding duplicates. It is kept
  * as typed, and `phone_digits` holds its normalized form for matching.
+ *
+ * A client may have a parent (one level only). A child can be saved without a phone.
  */
-#[Fillable(['last_name', 'first_name', 'middle_name', 'phone', 'email', 'birth_date', 'notes'])]
+#[Fillable(['parent_id', 'last_name', 'first_name', 'middle_name', 'phone', 'email', 'birth_date', 'notes'])]
 class Client extends Model
 {
     /** @use HasFactory<ClientFactory> */
@@ -42,13 +45,13 @@ class Client extends Model
      * Keep the normalized phone in step with the phone as typed. A mutator is used
      * instead of a model event, so that seeding without events fills it in too.
      *
-     * @return Attribute<string, string>
+     * @return Attribute<?string, ?string>
      */
     protected function phone(): Attribute
     {
-        return Attribute::set(fn (string $value): array => [
+        return Attribute::set(fn (?string $value): array => [
             'phone' => $value,
-            'phone_digits' => static::normalizePhone($value),
+            'phone_digits' => $value === null ? null : static::normalizePhone($value),
         ]);
     }
 
@@ -79,6 +82,26 @@ class Client extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * The parent client, if this one is a child.
+     *
+     * @return BelongsTo<Client, $this>
+     */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    /**
+     * The clients who are children of this one.
+     *
+     * @return HasMany<Client, $this>
+     */
+    public function children(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_id');
     }
 
     /**

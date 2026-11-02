@@ -42,6 +42,7 @@ class ClientSearchController extends Controller
                 'id' => $client->id,
                 'name' => $client->fullName(),
                 'phone' => $client->phone,
+                'isChild' => $client->parent_id !== null,
             ])->values(),
         ]);
     }

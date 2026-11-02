@@ -5,6 +5,9 @@ import AppLayout from '../../layouts/AppLayout.vue';
 
 const props = defineProps({
     client: { type: Object, required: true },
+    parent: { type: Object, default: null },
+    children: { type: Array, required: true },
+    canHaveChildren: { type: Boolean, required: true },
     canDelete: { type: Boolean, required: true },
     upcoming: { type: Array, required: true },
     history: { type: Array, required: true },
@@ -31,6 +34,13 @@ const destroy = () => {
                     Удалить
                 </button>
                 <Link
+                    v-if="canHaveChildren"
+                    :href="`/clients/create?parent=${client.id}`"
+                    class="inline-flex items-center rounded-md border border-line bg-white px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-surface"
+                >
+                    Добавить дочернего клиента
+                </Link>
+                <Link
                     :href="`/clients/${client.id}/edit`"
                     class="inline-flex items-center rounded-md border border-line bg-white px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-surface"
                 >
@@ -46,7 +56,7 @@ const destroy = () => {
                 <dl class="mt-4 grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
                     <div>
                         <dt class="text-muted">Телефон</dt>
-                        <dd class="mt-0.5 text-ink">{{ client.phone }}</dd>
+                        <dd class="mt-0.5 text-ink">{{ client.phone || '—' }}</dd>
                     </div>
                     <div>
                         <dt class="text-muted">Email</dt>
@@ -56,11 +66,27 @@ const destroy = () => {
                         <dt class="text-muted">Дата рождения</dt>
                         <dd class="mt-0.5 text-ink">{{ client.birthDateLabel || '—' }}</dd>
                     </div>
+                    <div v-if="parent">
+                        <dt class="text-muted">Родитель</dt>
+                        <dd class="mt-0.5">
+                            <Link :href="`/clients/${parent.id}`" class="text-ink underline underline-offset-4">{{ parent.name }}</Link>
+                        </dd>
+                    </div>
                     <div v-if="client.notes" class="sm:col-span-2">
                         <dt class="text-muted">Заметки</dt>
                         <dd class="mt-0.5 whitespace-pre-line text-ink">{{ client.notes }}</dd>
                     </div>
                 </dl>
+            </section>
+
+            <section v-if="children.length" aria-labelledby="children-heading">
+                <h2 id="children-heading" class="text-lg font-semibold">Дочерние клиенты</h2>
+                <ul class="mt-3 divide-y divide-line rounded-lg border border-line bg-white text-sm">
+                    <li v-for="child in children" :key="child.id" class="px-4 py-3">
+                        <Link :href="`/clients/${child.id}`" class="font-medium text-ink underline underline-offset-4">{{ child.name }}</Link>
+                        <span v-if="child.phone" class="text-muted"> · {{ child.phone }}</span>
+                    </li>
+                </ul>
             </section>
 
             <section aria-labelledby="upcoming-heading">

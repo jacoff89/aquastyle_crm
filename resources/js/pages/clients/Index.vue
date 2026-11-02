@@ -131,16 +131,20 @@ const arrow = (key) => {
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-line">
-                        <tr v-for="client in clients.data" :key="client.id" class="flex flex-col px-4 py-3 sm:table-row sm:p-0">
-                            <td class="sm:px-4 sm:py-3">
+                        <tr v-for="client in clients.data" :key="client.id" class="flex flex-col px-4 py-3 sm:table-row sm:p-0"
+                            :class="client.isChild ? 'bg-surface/50' : ''">
+                            <td class="sm:px-4 sm:py-3" :class="client.isChild ? 'pl-6 sm:pl-10' : ''">
+                                <span v-if="client.isChild" class="mr-1.5 text-muted" aria-hidden="true">↳</span>
                                 <Link
                                     :href="`/clients/${client.id}`"
                                     class="font-medium text-ink underline-offset-4 hover:text-sea-700 hover:underline"
                                 >
                                     {{ client.name }}
                                 </Link>
+                                <span v-if="client.isChild" class="sr-only">(дочерний клиент)</span>
+                                <span v-if="client.parentName" class="ml-2 text-xs text-muted">родитель: {{ client.parentName }}</span>
                             </td>
-                            <td class="text-muted sm:px-4 sm:py-3">{{ client.phone }}</td>
+                            <td class="text-muted sm:px-4 sm:py-3">{{ client.phone || (client.isChild ? '—' : '') }}</td>
                             <td class="hidden px-4 py-3 text-muted md:table-cell">{{ client.email || '—' }}</td>
                             <td class="hidden px-4 py-3 text-muted lg:table-cell">{{ client.createdAtLabel }}</td>
                         </tr>

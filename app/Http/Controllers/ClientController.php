@@ -52,6 +52,13 @@ class ClientController extends Controller
 
         $query = Client::query()->search($search);
 
+        if ($search === '') {
+            $query->whereNull('parent_id')->with(['children' => fn ($children) => $children
+                ->orderBy('last_name')->orderBy('first_name')->orderBy('middle_name')->orderBy('id')]);
+        } else {
+            $query->with('parent');
+        }
+
         foreach (self::SORTS[$sort] as $column) {
             $query->orderBy($column, $direction);
         }
@@ -60,12 +67,9 @@ class ClientController extends Controller
 
         return Inertia::render('clients/Index', [
             'clients' => [
-                'data' => $clients->getCollection()->map(fn (Client $client): array => [
-                    'id' => $client->id,
-                    'name' => $client->fullName(),
-                    'phone' => $client->phone,
-                    'email' => $client->email,
-                    'createdAtLabel' => $client->created_at->format('d.m.Y'),
+                'data' => $clients->getCollection()->flatMap(fn (Client $client): array => [
+                    $this->listRow($client),
+                    ...$client->children->map(fn (Client $child): array => $this->listRow($child))->all(),
                 ])->values(),
                 'currentPage' => $clients->currentPage(),
                 'lastPage' => $clients->lastPage(),
@@ -83,12 +87,15 @@ class ClientController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function create(Request $request): Response
     {
         Gate::authorize('create', Client::class);
 
+        $parent = Client::query()->whereNull('parent_id')->find($request->query('parent'));
+
         return Inertia::render('clients/Form', [
             'client' => null,
+            'parent' => $parent ? $this->parentData($parent) : null,
         ]);
     }
 
@@ -123,6 +130,10 @@ class ClientController extends Controller
                 'fullName' => $client->fullName(),
                 'birthDateLabel' => $client->birth_date?->format('d.m.Y'),
             ],
+            'parent' => $client->parent ? $this->parentData($client->parent) : null,
+            'children' => $client->children()->orderBy('last_name')->orderBy('first_name')->get()
+                ->map(fn (Client $child): array => $this->parentData($child))->values(),
+            'canHaveChildren' => $client->parent_id === null,
             'canDelete' => $request->user()->can('delete', $client),
             'upcoming' => $this->upcomingBookings($client, $now)->get()->map($this->bookingRow(...))->values(),
             'history' => $this->pastBookings($client, $now)->limit(self::HISTORY_LIMIT)->get()->map($this->bookingRow(...))->values(),
@@ -136,6 +147,7 @@ class ClientController extends Controller
 
         return Inertia::render('clients/Form', [
             'client' => $this->formData($client),
+            'parent' => $client->parent ? $this->parentData($client->parent) : null,
         ]);
     }
 
@@ -156,12 +168,40 @@ class ClientController extends Controller
     }
 
     /**
-     * @return array{id: int, lastName: string, firstName: string, middleName: ?string, phone: string, email: ?string, birthDate: ?string, notes: ?string}
+     * One line of the client list. Children follow their parent when the list is not searched;
+     * in a search they appear on their own, with the parent's name.
+     *
+     * @return array<string, mixed>
+     */
+    private function listRow(Client $client): array
+    {
+        return [
+            'id' => $client->id,
+            'name' => $client->fullName(),
+            'phone' => $client->phone,
+            'email' => $client->email,
+            'createdAtLabel' => $client->created_at->format('d.m.Y'),
+            'isChild' => $client->parent_id !== null,
+            'parentName' => $client->relationLoaded('parent') ? $client->parent?->fullName() : null,
+        ];
+    }
+
+    /**
+     * @return array{id: int, name: string, phone: ?string}
+     */
+    private function parentData(Client $client): array
+    {
+        return ['id' => $client->id, 'name' => $client->fullName(), 'phone' => $client->phone];
+    }
+
+    /**
+     * @return array{id: int, lastName: string, firstName: string, middleName: ?string, phone: ?string, email: ?string, birthDate: ?string, notes: ?string}
      */
     private function formData(Client $client): array
     {
         return [
             'id' => $client->id,
+            'parentId' => $client->parent_id,
             'lastName' => $client->last_name,
             'firstName' => $client->first_name,
             'middleName' => $client->middle_name,

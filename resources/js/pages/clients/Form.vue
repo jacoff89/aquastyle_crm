@@ -9,12 +9,16 @@ import AppLayout from '../../layouts/AppLayout.vue';
 
 const props = defineProps({
     client: { type: Object, default: null },
+    parent: { type: Object, default: null },
 });
 
 const isEditing = computed(() => props.client !== null);
 const title = computed(() => (isEditing.value ? `${props.client.lastName} ${props.client.firstName}` : 'Новый клиент'));
 
+const selectedParent = ref(props.parent);
+
 const form = useForm({
+    parent_id: props.parent?.id ?? null,
     last_name: props.client?.lastName ?? '',
     first_name: props.client?.firstName ?? '',
     middle_name: props.client?.middleName ?? '',
@@ -78,6 +82,59 @@ watch(
 
 onBeforeUnmount(() => clearTimeout(checkTimer));
 
+/**
+ * Выбор родителя: поиск среди клиентов, которые сами не дочерние и не редактируемый клиент.
+ * Сервер всё равно проверит эти правила при сохранении.
+ */
+const parentTerm = ref('');
+const parentResults = ref([]);
+let parentTimer = null;
+let parentSearchId = 0;
+
+const searchParents = async () => {
+    const id = ++parentSearchId;
+    const term = parentTerm.value.trim();
+
+    if (term === '') {
+        parentResults.value = [];
+
+        return;
+    }
+
+    try {
+        const response = await fetch(`/clients/search?q=${encodeURIComponent(term)}`, { headers: { Accept: 'application/json' } });
+
+        if (!response.ok || id !== parentSearchId) {
+            return;
+        }
+
+        parentResults.value = (await response.json()).clients.filter(
+            (candidate) => !candidate.isChild && candidate.id !== props.client?.id,
+        );
+    } catch {
+        parentResults.value = [];
+    }
+};
+
+watch(parentTerm, () => {
+    clearTimeout(parentTimer);
+    parentTimer = setTimeout(searchParents, 300);
+});
+
+const selectParent = (candidate) => {
+    selectedParent.value = candidate;
+    form.parent_id = candidate.id;
+    parentTerm.value = '';
+    parentResults.value = [];
+};
+
+const clearParent = () => {
+    selectedParent.value = null;
+    form.parent_id = null;
+};
+
+onBeforeUnmount(() => clearTimeout(parentTimer));
+
 const submit = () => {
     const options = { onError: checkDuplicates };
 
@@ -126,13 +183,48 @@ const submit = () => {
                     </FormField>
                 </div>
 
-                <FormField id="phone" label="Телефон" hint="По телефону ищем клиента и находим повторные записи." :error="form.errors.phone">
+                <FormField id="parent" label="Родитель" hint="Необязательно. Если указан родитель, телефон можно не заполнять." :error="form.errors.parent_id">
+                    <div v-if="selectedParent" class="flex items-center justify-between gap-3 rounded-md bg-surface px-4 py-2.5 text-sm">
+                        <Link :href="`/clients/${selectedParent.id}`" target="_blank" class="font-medium text-ink underline underline-offset-4">
+                            {{ selectedParent.name }}
+                        </Link>
+                        <button type="button" class="text-muted hover:text-ink" @click="clearParent">Убрать</button>
+                    </div>
+                    <div v-else>
+                        <TextInput
+                            id="parent"
+                            v-model="parentTerm"
+                            autocomplete="off"
+                            placeholder="Найти по имени или телефону"
+                            :invalid="Boolean(form.errors.parent_id)"
+                        />
+                        <ul v-if="parentResults.length" class="mt-1 divide-y divide-line rounded-md border border-line bg-white text-sm">
+                            <li v-for="candidate in parentResults" :key="candidate.id">
+                                <button
+                                    type="button"
+                                    class="w-full px-4 py-2 text-left hover:bg-surface"
+                                    @click="selectParent(candidate)"
+                                >
+                                    {{ candidate.name }}
+                                    <span v-if="candidate.phone" class="text-muted"> · {{ candidate.phone }}</span>
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                </FormField>
+
+                <FormField
+                    id="phone"
+                    label="Телефон"
+                    hint="По телефону ищем клиента и находим повторные записи."
+                    :error="form.errors.phone"
+                >
                     <TextInput
                         id="phone"
                         v-model="form.phone"
                         type="tel"
                         autocomplete="off"
-                        required
+                        :required="!selectedParent"
                         :invalid="Boolean(form.errors.phone)"
                     />
                 </FormField>
