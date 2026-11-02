@@ -274,6 +274,10 @@ const openExisting = (event) => {
     dialog.value = { key: ++dialogKey, event, draft: {} };
 };
 
+const copyExisting = (event) => {
+    dialog.value = { key: ++dialogKey, event: null, template: event, draft: {} };
+};
+
 const closeDialog = () => {
     dialog.value = null;
 };
@@ -695,12 +699,15 @@ const isEmptyPeriod = computed(() => loaded.value && !loading.value && events.va
             :key="dialog.key"
             :event="dialog.event"
             :draft="dialog.draft"
+            :template="dialog.template ?? null"
+            :can-copy="canCreate"
             :instructors="instructors"
             :event-types="eventTypes"
             :statuses="statuses"
             :attendance-statuses="attendanceStatuses"
             :request="request"
             @saved="onSaved"
+            @copy="copyExisting"
             @close="closeDialog"
         />
 

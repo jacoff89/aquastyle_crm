@@ -14,6 +14,10 @@ const props = defineProps({
     event: { type: Object, default: null },
     /** Начальные значения нового занятия: { start, end, leadInstructorId }. */
     draft: { type: Object, default: () => ({}) },
+    /** Занятие, с которого копируются значения нового занятия, или null. */
+    template: { type: Object, default: null },
+    /** Можно ли предложить копирование открытого занятия. */
+    canCopy: { type: Boolean, default: false },
     instructors: { type: Array, required: true },
     eventTypes: { type: Array, required: true },
     statuses: { type: Array, required: true },
@@ -22,7 +26,7 @@ const props = defineProps({
     request: { type: Function, required: true },
 });
 
-const emit = defineEmits(['saved', 'close']);
+const emit = defineEmits(['saved', 'close', 'copy']);
 
 const isEditing = computed(() => props.event !== null);
 
@@ -32,23 +36,26 @@ const splitDateTime = (value) => {
     return { date, time };
 };
 
-const start = splitDateTime(props.event?.start ?? props.draft.start);
-const end = splitDateTime(props.event?.end ?? props.draft.end);
+/** Значения формы берутся из правимого занятия, а у нового — из копируемого. */
+const source = props.event ?? props.template;
+
+const start = splitDateTime(source?.start ?? props.draft.start);
+const end = splitDateTime(source?.end ?? props.draft.end);
 
 const firstActiveType = props.eventTypes.find((eventType) => eventType.isActive);
 
 const form = useHttp({
-    event_type_id: props.event?.eventTypeId ?? firstActiveType?.id ?? '',
-    title: props.event?.customTitle ?? '',
+    event_type_id: source?.eventTypeId ?? firstActiveType?.id ?? '',
+    title: source?.customTitle ?? '',
     date: start.date,
     start_time: start.time,
     end_time: end.time,
-    location: props.event?.location ?? '',
-    capacity: props.event?.capacity == null ? '' : String(props.event.capacity),
-    lead_instructor_id: props.event?.leadInstructorId ?? props.draft.leadInstructorId ?? '',
-    assistant_ids: [...(props.event?.assistantIds ?? [])],
+    location: source?.location ?? '',
+    capacity: source?.capacity == null ? '' : String(source.capacity),
+    lead_instructor_id: source?.leadInstructorId ?? props.draft.leadInstructorId ?? '',
+    assistant_ids: [...(source?.assistantIds ?? [])],
     status: props.event?.status ?? 'planned',
-    notes: props.event?.notes ?? '',
+    notes: source?.notes ?? '',
     confirm_conflicts: false,
 });
 
@@ -80,7 +87,7 @@ form.transform((data) => ({
 }));
 
 /** Скрытые инструкторы и типы предлагаются, только если уже стоят в занятии. */
-const assignedIds = computed(() => (props.event?.instructors ?? []).map((instructor) => instructor.id));
+const assignedIds = computed(() => (source?.instructors ?? []).map((instructor) => instructor.id));
 
 const instructorOptions = computed(() =>
     props.instructors.filter((instructor) => instructor.isActive || assignedIds.value.includes(instructor.id)),
@@ -94,7 +101,7 @@ const typeById = (id) => props.eventTypes.find((eventType) => eventType.id === i
 const rootTypeOf = (eventType) => (eventType?.parentId ? typeById(eventType.parentId) : eventType);
 
 const initialType = typeById(form.event_type_id);
-const currentRootId = rootTypeOf(typeById(props.event?.eventTypeId))?.id;
+const currentRootId = rootTypeOf(typeById(source?.eventTypeId))?.id;
 const parentTypeId = ref(rootTypeOf(initialType)?.id ?? '');
 const childTypeId = ref(initialType?.parentId ? initialType.id : '');
 
@@ -123,7 +130,7 @@ const parentTypeOptions = computed(() =>
 const childTypeOptions = computed(() =>
     props.eventTypes.filter(
         (eventType) =>
-            eventType.parentId === parentTypeId.value && (eventType.isActive || eventType.id === props.event?.eventTypeId),
+            eventType.parentId === parentTypeId.value && (eventType.isActive || eventType.id === source?.eventTypeId),
     ),
 );
 
@@ -252,6 +259,14 @@ onMounted(() => {
                     @click="tab = 'clients'"
                 >
                     Клиенты{{ clientsTabLabel }}
+                </button>
+                <button
+                    v-if="canCopy"
+                    type="button"
+                    class="my-1.5 ml-auto rounded-md border border-line px-3 py-1 text-sm font-medium text-ink hover:bg-surface"
+                    @click="emit('copy', event)"
+                >
+                    Копировать занятие
                 </button>
             </div>
 
