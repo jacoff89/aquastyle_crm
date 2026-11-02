@@ -48,9 +48,11 @@ class CalendarController extends Controller
                     'color' => $instructor->color,
                     'isActive' => $instructor->is_active,
                 ]),
-            'eventTypes' => EventType::query()->ordered()->get()->map(fn (EventType $eventType): array => [
+            'eventTypes' => EventType::inTreeOrder()->map(fn (EventType $eventType): array => [
                 'id' => $eventType->id,
-                'name' => $eventType->name,
+                'parentId' => $eventType->parent_id,
+                'name' => $eventType->full_name,
+                'shortName' => $eventType->name,
                 'isActive' => $eventType->is_active,
             ]),
             'statuses' => collect(EventStatus::cases())->map(fn (EventStatus $status): array => [

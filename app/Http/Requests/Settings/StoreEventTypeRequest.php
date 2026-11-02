@@ -20,6 +20,7 @@ class StoreEventTypeRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:100', Rule::unique(EventType::class)],
+            'parent_id' => ['nullable', 'integer', Rule::exists(EventType::class, 'id')->whereNull('parent_id')],
         ];
     }
 
@@ -28,7 +29,15 @@ class StoreEventTypeRequest extends FormRequest
      */
     public function attributes(): array
     {
-        return ['name' => 'Название'];
+        return ['name' => 'Название', 'parent_id' => 'Родительский тип'];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return ['parent_id.exists' => 'Выберите родительский тип из списка: у дочернего типа не может быть своих дочерних.'];
     }
 
     protected function prepareForValidation(): void

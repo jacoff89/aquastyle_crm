@@ -96,7 +96,7 @@ class Event extends Model
      */
     public function displayTitle(): string
     {
-        return filled($this->title) ? $this->title : (string) $this->type?->name;
+        return filled($this->title) ? $this->title : (string) $this->type?->full_name;
     }
 
     /**

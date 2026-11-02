@@ -79,11 +79,7 @@ form.transform((data) => ({
     confirm_conflicts: data.confirm_conflicts,
 }));
 
-/** Скрытые типы и отключённые инструкторы предлагаются, только если уже стоят в занятии. */
-const typeOptions = computed(() =>
-    props.eventTypes.filter((eventType) => eventType.isActive || eventType.id === props.event?.eventTypeId),
-);
-
+/** Скрытые инструкторы и типы предлагаются, только если уже стоят в занятии. */
 const assignedIds = computed(() => (props.event?.instructors ?? []).map((instructor) => instructor.id));
 
 const instructorOptions = computed(() =>
@@ -92,6 +88,43 @@ const instructorOptions = computed(() =>
 
 const assistantOptions = computed(() =>
     instructorOptions.value.filter((instructor) => instructor.id !== form.lead_instructor_id),
+);
+
+const typeById = (id) => props.eventTypes.find((eventType) => eventType.id === id);
+const rootTypeOf = (eventType) => (eventType?.parentId ? typeById(eventType.parentId) : eventType);
+
+const initialType = typeById(form.event_type_id);
+const currentRootId = rootTypeOf(typeById(props.event?.eventTypeId))?.id;
+const parentTypeId = ref(rootTypeOf(initialType)?.id ?? '');
+const childTypeId = ref(initialType?.parentId ? initialType.id : '');
+
+/** Тип занятия выбирается в два шага: сначала родитель, затем (если они есть) его дочерний тип. */
+const parentTypeModel = computed({
+    get: () => parentTypeId.value,
+    set: (id) => {
+        parentTypeId.value = id;
+        childTypeId.value = '';
+        form.event_type_id = id;
+    },
+});
+
+const childTypeModel = computed({
+    get: () => childTypeId.value,
+    set: (id) => {
+        childTypeId.value = id;
+        form.event_type_id = id || parentTypeId.value;
+    },
+});
+
+const parentTypeOptions = computed(() =>
+    props.eventTypes.filter((eventType) => !eventType.parentId && (eventType.isActive || eventType.id === currentRootId)),
+);
+
+const childTypeOptions = computed(() =>
+    props.eventTypes.filter(
+        (eventType) =>
+            eventType.parentId === parentTypeId.value && (eventType.isActive || eventType.id === props.event?.eventTypeId),
+    ),
 );
 
 const selectedType = computed(() => props.eventTypes.find((eventType) => eventType.id === form.event_type_id));
@@ -233,14 +266,25 @@ onMounted(() => {
             >
                 <div class="space-y-5 overflow-y-auto px-6 py-5">
                     <div class="grid gap-5 sm:grid-cols-2">
-                        <FormField id="event_type_id" label="Тип занятия" :error="form.errors.event_type_id">
-                            <SelectInput id="event_type_id" v-model="form.event_type_id" required :invalid="Boolean(form.errors.event_type_id)">
-                                <option v-if="typeOptions.length === 0" value="" disabled>Нет доступных типов</option>
-                                <option v-for="eventType in typeOptions" :key="eventType.id" :value="eventType.id">
-                                    {{ eventType.name }}{{ eventType.isActive ? '' : ' (скрыт)' }}
-                                </option>
-                            </SelectInput>
-                        </FormField>
+                        <div class="space-y-2">
+                            <FormField id="event_type_id" label="Тип занятия" :error="form.errors.event_type_id">
+                                <SelectInput id="event_type_id" v-model="parentTypeModel" required :invalid="Boolean(form.errors.event_type_id)">
+                                    <option v-if="parentTypeOptions.length === 0" value="" disabled>Нет доступных типов</option>
+                                    <option v-for="eventType in parentTypeOptions" :key="eventType.id" :value="eventType.id">
+                                        {{ eventType.shortName }}{{ eventType.isActive ? '' : ' (скрыт)' }}
+                                    </option>
+                                </SelectInput>
+                            </FormField>
+
+                            <FormField v-if="childTypeOptions.length > 0" id="event_child_type_id" label="Вложенный тип">
+                                <SelectInput id="event_child_type_id" v-model="childTypeModel">
+                                    <option value="">—</option>
+                                    <option v-for="eventType in childTypeOptions" :key="eventType.id" :value="eventType.id">
+                                        {{ eventType.shortName }}{{ eventType.isActive ? '' : ' (скрыт)' }}
+                                    </option>
+                                </SelectInput>
+                            </FormField>
+                        </div>
 
                         <FormField id="title" label="Название" hint="Необязательно, по умолчанию — тип занятия." :error="form.errors.title">
                             <TextInput

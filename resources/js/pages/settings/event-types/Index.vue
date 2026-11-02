@@ -1,33 +1,43 @@
 <script setup>
 import { router, useForm } from '@inertiajs/vue3';
-import { nextTick, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import AppIcon from '../../../components/AppIcon.vue';
 import PrimaryButton from '../../../components/PrimaryButton.vue';
+import SelectInput from '../../../components/SelectInput.vue';
 import TextInput from '../../../components/TextInput.vue';
 import AppLayout from '../../../layouts/AppLayout.vue';
 
-defineProps({
+const props = defineProps({
     eventTypes: { type: Array, required: true },
 });
 
+const parentOptions = computed(() => props.eventTypes.filter((eventType) => eventType.parentId === null));
+
+const hasChildren = (eventType) => props.eventTypes.some((other) => other.parentId === eventType.id);
+
+const siblings = (eventType) => props.eventTypes.filter((other) => other.parentId === eventType.parentId);
+const isFirst = (eventType) => siblings(eventType)[0].id === eventType.id;
+const isLast = (eventType) => siblings(eventType).at(-1).id === eventType.id;
+
 const url = (eventType) => `/settings/event-types/${eventType.id}`;
 
-const addForm = useForm({ name: '' });
+const addForm = useForm({ name: '', parent_id: '' });
 
 const add = () => {
     addForm.post('/settings/event-types', {
         preserveScroll: true,
-        onSuccess: () => addForm.reset(),
+        onSuccess: () => addForm.reset('name'),
     });
 };
 
 const editingId = ref(null);
-const editForm = useForm({ name: '' });
+const editForm = useForm({ name: '', parent_id: '' });
 
 const startEditing = async (eventType) => {
     editingId.value = eventType.id;
     editForm.clearErrors();
     editForm.name = eventType.name;
+    editForm.parent_id = eventType.parentId ?? '';
     await nextTick();
     document.getElementById(`type-name-${eventType.id}`)?.focus();
 };
@@ -56,21 +66,23 @@ const move = (eventType, direction) => {
 <template>
     <AppLayout title="Типы занятий">
         <p class="max-w-2xl text-sm leading-6 text-muted">
-            В этом порядке типы предлагаются при создании занятия. Скрытый тип остаётся у прошлых занятий, но для новых
+            В этом порядке типы предлагаются при создании занятия. Тип может быть дочерним к другому типу (один уровень):
+            в календаре он показывается как «Родитель / Дочерний», а фильтр по родителю включает и дочерние. Скрытый тип остаётся у прошлых занятий, но для новых
             его выбрать нельзя.
         </p>
 
         <ul class="mt-6 max-w-2xl divide-y divide-line rounded-lg border border-line bg-white">
             <li
-                v-for="(eventType, index) in eventTypes"
+                v-for="eventType in eventTypes"
                 :key="eventType.id"
                 class="flex items-center gap-3 px-3 py-2.5 sm:px-4"
+                :class="{ 'bg-slate-50/60 pl-8 sm:pl-12': eventType.parentId !== null }"
             >
                 <div class="flex shrink-0 flex-col" aria-label="Порядок">
                     <button
                         type="button"
                         class="rounded p-0.5 text-muted hover:bg-sea-50 hover:text-sea-700 disabled:invisible"
-                        :disabled="index === 0"
+                        :disabled="isFirst(eventType)"
                         :aria-label="`Поднять «${eventType.name}» выше`"
                         @click="move(eventType, 'up')"
                     >
@@ -79,7 +91,7 @@ const move = (eventType, direction) => {
                     <button
                         type="button"
                         class="rounded p-0.5 text-muted hover:bg-sea-50 hover:text-sea-700 disabled:invisible"
-                        :disabled="index === eventTypes.length - 1"
+                        :disabled="isLast(eventType)"
                         :aria-label="`Опустить «${eventType.name}» ниже`"
                         @click="move(eventType, 'down')"
                     >
@@ -104,6 +116,25 @@ const move = (eventType, direction) => {
                         />
                         <p v-if="editForm.errors.name" class="mt-1 text-sm text-flag">{{ editForm.errors.name }}</p>
                     </div>
+                    <div class="min-w-48">
+                        <label :for="`type-parent-${eventType.id}`" class="sr-only">Родительский тип</label>
+                        <SelectInput
+                            :id="`type-parent-${eventType.id}`"
+                            v-model="editForm.parent_id"
+                            :disabled="hasChildren(eventType)"
+                            :title="hasChildren(eventType) ? 'У типа есть дочерние' : null"
+                        >
+                            <option value="">Без родителя</option>
+                            <option
+                                v-for="parent in parentOptions.filter((option) => option.id !== eventType.id)"
+                                :key="parent.id"
+                                :value="parent.id"
+                            >
+                                Дочерний к «{{ parent.name }}»
+                            </option>
+                        </SelectInput>
+                        <p v-if="editForm.errors.parent_id" class="mt-1 text-sm text-flag">{{ editForm.errors.parent_id }}</p>
+                    </div>
                     <PrimaryButton :processing="editForm.processing">Сохранить</PrimaryButton>
                     <button type="button" class="px-2 py-2 text-sm text-muted hover:text-ink" @click="stopEditing">
                         Отмена
@@ -123,7 +154,7 @@ const move = (eventType, direction) => {
                             class="rounded px-2 py-1 text-sm text-sea-700 hover:bg-sea-50"
                             @click="startEditing(eventType)"
                         >
-                            Переименовать
+                            Изменить
                         </button>
                         <button
                             type="button"
@@ -151,6 +182,16 @@ const move = (eventType, direction) => {
                     :invalid="Boolean(addForm.errors.name)"
                 />
                 <p v-if="addForm.errors.name" class="mt-1 text-sm text-flag">{{ addForm.errors.name }}</p>
+            </div>
+            <div class="min-w-48">
+                <label for="new-type-parent" class="sr-only">Родительский тип</label>
+                <SelectInput id="new-type-parent" v-model="addForm.parent_id">
+                    <option value="">Без родителя</option>
+                    <option v-for="parent in parentOptions" :key="parent.id" :value="parent.id">
+                        Дочерний к «{{ parent.name }}»
+                    </option>
+                </SelectInput>
+                <p v-if="addForm.errors.parent_id" class="mt-1 text-sm text-flag">{{ addForm.errors.parent_id }}</p>
             </div>
             <PrimaryButton :processing="addForm.processing">
                 <AppIcon name="plus" />

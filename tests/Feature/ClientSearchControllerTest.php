@@ -136,7 +136,7 @@ class ClientSearchControllerTest extends TestCase
 
         $this->actingAs($this->user())
             ->getJson('/clients/search?q=Иванов')
-            ->assertJsonPath('clients.0', fn (array $client): bool => array_keys($client) === ['id', 'name', 'phone']);
+            ->assertJsonPath('clients.0', fn (array $client): bool => array_keys($client) === ['id', 'name', 'phone', 'isChild']);
     }
 
     private function user(bool $isAdmin = true): User

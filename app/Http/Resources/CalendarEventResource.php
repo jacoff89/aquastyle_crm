@@ -33,7 +33,7 @@ class CalendarEventResource extends JsonResource
             'title' => $this->displayTitle(),
             'customTitle' => $this->title,
             'eventTypeId' => $this->event_type_id,
-            'typeName' => $this->type?->name,
+            'typeName' => $this->type?->full_name,
             'start' => $this->starts_at->format(EventRequest::DATETIME_FORMAT),
             'end' => $this->ends_at->format(EventRequest::DATETIME_FORMAT),
             'location' => $this->location,

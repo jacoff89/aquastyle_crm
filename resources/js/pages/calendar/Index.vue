@@ -32,6 +32,30 @@ const notice = ref('');
 /** Пустая строка — «все»: так её отдаёт и принимает выпадающий список. */
 const instructorFilter = ref(props.initialFilters.instructorId ?? '');
 const typeFilter = ref(props.initialFilters.eventTypeId ?? '');
+
+const filterType = computed(() => props.eventTypes.find((eventType) => eventType.id === typeFilter.value));
+
+/** Тип в фильтре выбирается в два шага: родитель и, если они есть, его вложенный тип. */
+const parentTypeFilter = computed({
+    get: () => (filterType.value?.parentId ?? filterType.value?.id ?? ''),
+    set: (id) => {
+        typeFilter.value = id;
+    },
+});
+
+const childTypeFilter = computed({
+    get: () => (filterType.value?.parentId ? filterType.value.id : ''),
+    set: (id) => {
+        typeFilter.value = id || parentTypeFilter.value;
+    },
+});
+
+const parentTypes = computed(() => props.eventTypes.filter((eventType) => !eventType.parentId));
+
+const childTypes = computed(() =>
+    props.eventTypes.filter((eventType) => eventType.parentId !== null && eventType.parentId === parentTypeFilter.value),
+);
+
 const hasFilters = computed(() => instructorFilter.value !== '' || typeFilter.value !== '');
 
 const isInstructor = computed(() => page.props.auth.user.roles.includes('instructor'));
@@ -494,10 +518,19 @@ const isEmptyPeriod = computed(() => loaded.value && !loading.value && events.va
             </FormField>
 
             <FormField id="filter-type" label="Тип занятия" class="w-full sm:w-56">
-                <SelectInput id="filter-type" v-model="typeFilter">
+                <SelectInput id="filter-type" v-model="parentTypeFilter">
                     <option value="">Все типы</option>
-                    <option v-for="eventType in eventTypes" :key="eventType.id" :value="eventType.id">
-                        {{ eventType.name }}{{ eventType.isActive ? '' : ' (скрыт)' }}
+                    <option v-for="eventType in parentTypes" :key="eventType.id" :value="eventType.id">
+                        {{ eventType.shortName }}{{ eventType.isActive ? '' : ' (скрыт)' }}
+                    </option>
+                </SelectInput>
+            </FormField>
+
+            <FormField v-if="childTypes.length > 0" id="filter-child-type" label="Вложенный тип" class="w-full sm:w-56">
+                <SelectInput id="filter-child-type" v-model="childTypeFilter">
+                    <option value="">—</option>
+                    <option v-for="eventType in childTypes" :key="eventType.id" :value="eventType.id">
+                        {{ eventType.shortName }}{{ eventType.isActive ? '' : ' (скрыт)' }}
                     </option>
                 </SelectInput>
             </FormField>
