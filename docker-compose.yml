@@ -30,6 +30,23 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  queue:
+    container_name: aquastyle_crm-queue
+    build:
+      context: .docker/php-fpm
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    # queue:listen перечитывает код на каждой задаче — после правок перезапускать не нужно.
+    # Ждём vendor: при первом make setup контейнеры стартуют раньше composer install
+    command: ["sh", "-c", "until [ -f vendor/autoload.php ]; do sleep 2; done; exec php artisan queue:listen --tries=1 --timeout=60"]
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
   db:
     container_name: aquastyle_crm-db
     image: mysql:8.4

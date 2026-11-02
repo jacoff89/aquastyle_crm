@@ -1,18 +1,30 @@
 name: aquastyle_crm
 
+# общее для сайта и воркера очереди: один образ, один .env, один storage
+x-app: &app
+  image: ${DOCKER_REPO:?DOCKER_REPO не задан}:${IMAGE_TAG:?IMAGE_TAG не задан}
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  environment:
+    PUID: ${HOST_UID:-1000}
+    PGID: ${HOST_GID:-1000}
+  volumes:
+    - ./.env:/var/www/html/.env:ro
+    - ./storage:/var/www/html/storage
+  restart: unless-stopped
+
 services:
   app:
+    <<: *app
     container_name: aquastyle_crm
-    image: ${DOCKER_REPO:?DOCKER_REPO не задан}:${IMAGE_TAG:?IMAGE_TAG не задан}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     ports:
       - "${NGINX_HOST:-0.0.0.0}:${NGINX_PORT:?NGINX_PORT не задан в .env}:80"
 
-    environment:
-      PUID: ${HOST_UID:-1000}
-      PGID: ${HOST_GID:-1000}
-    volumes:
-      - ./.env:/var/www/html/.env:ro
-      - ./storage:/var/www/html/storage
-    restart: unless-stopped
+  queue:
+    <<: *app
+    container_name: aquastyle_crm-queue
+    # --timeout меньше retry_after (90 с в config/queue.php), иначе задачу может взять второй воркер;
+    # --max-time: раз в час воркер сам выходит, Docker поднимает его заново (страховка от утечек памяти)
+    command: ["php", "artisan", "queue:work", "--sleep=3", "--tries=3", "--timeout=60", "--max-time=3600"]
+    # при остановке воркер получает SIGTERM и доделывает текущую задачу — даём ему на это время
+    stop_grace_period: 70s

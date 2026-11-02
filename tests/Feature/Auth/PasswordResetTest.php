@@ -3,11 +3,13 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\User;
-use Illuminate\Auth\Notifications\ResetPassword;
+use App\Notifications\ResetPasswordNotification;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Notifications\SendQueuedNotifications;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Queue;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -30,7 +32,7 @@ class PasswordResetTest extends TestCase
         $this->post('/forgot-password', ['email' => $user->email])
             ->assertSessionHas('status', 'Если такой email зарегистрирован, мы отправили на него ссылку для сброса пароля.');
 
-        Notification::assertSentTo($user, ResetPassword::class);
+        Notification::assertSentTo($user, ResetPasswordNotification::class);
     }
 
     public function test_unknown_email_gets_the_same_answer_as_a_known_one(): void
@@ -51,7 +53,7 @@ class PasswordResetTest extends TestCase
 
         $this->post('/forgot-password', ['email' => $user->email]);
 
-        Notification::assertSentTo($user, ResetPassword::class, function (ResetPassword $notification) use ($user): bool {
+        Notification::assertSentTo($user, ResetPasswordNotification::class, function (ResetPasswordNotification $notification) use ($user): bool {
             $mail = $notification->toMail($user);
 
             return $mail->subject === 'Сброс пароля'
@@ -111,5 +113,19 @@ class PasswordResetTest extends TestCase
             'password' => 'short',
             'password_confirmation' => 'short',
         ])->assertSessionHasErrors(['password' => 'Поле «Пароль» должно содержать не меньше 8 символов.']);
+    }
+
+    public function test_reset_link_is_sent_through_the_queue_with_an_encrypted_payload(): void
+    {
+        $user = User::factory()->create();
+        Queue::fake([SendQueuedNotifications::class]);
+
+        $this->post('/forgot-password', ['email' => $user->email])
+            ->assertSessionHasNoErrors();
+
+        Queue::assertPushed(SendQueuedNotifications::class, fn (SendQueuedNotifications $job): bool => $job->notification instanceof ResetPasswordNotification
+            && $job->notifiables->first()->is($user)
+            && $job->shouldBeEncrypted
+            && $job->tries === 3);
     }
 }

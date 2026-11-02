@@ -1,4 +1,4 @@
-.PHONY: pull up build down dev composer-install npm-install npm-build migrate create-admin test pint setup deploy-dev deploy-prod
+.PHONY: pull up build down dev composer-install npm-install npm-build migrate create-admin test pint setup deploy-dev deploy-prod queue-logs queue-failed queue-retry
 
 compose-env = env UID=$$(id -u) GID=$$(id -g) docker compose
 
@@ -55,3 +55,12 @@ deploy-dev:
 
 deploy-prod:
 	./deploy.sh prod $(if $(TAG),--tag $(TAG))
+
+queue-logs:
+	$(compose-env) logs -f queue
+
+queue-failed:
+	$(compose-env) exec -T php-fpm php artisan queue:failed
+
+queue-retry:
+	$(compose-env) exec -T php-fpm php artisan queue:retry all

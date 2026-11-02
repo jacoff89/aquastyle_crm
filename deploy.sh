@@ -93,7 +93,8 @@ $DC up -d --remove-orphans
 
 PORT="$(grep -E '^NGINX_PORT=' .env | cut -d= -f2)"
 for _ in $(seq 1 30); do
-  if curl -fsS -o /dev/null "http://127.0.0.1:${PORT}/up"; then
+  if curl -fsS -o /dev/null "http://127.0.0.1:${PORT}/up" \
+    && [ "$($DC ps --status running -q queue)" != "" ]; then
     echo "$IMAGE_TAG" > .current_tag
     # оставляем 3 свежих образа, остальные удаляем
     docker image ls "$DOCKER_REPO" -q | awk '!s[$0]++' | tail -n +4 | xargs -r docker rmi >/dev/null 2>&1 || true
@@ -103,8 +104,8 @@ for _ in $(seq 1 30); do
   sleep 2
 done
 
-echo "✗ /up не отвечает" >&2
-$DC logs --tail=50 app >&2 || true
+echo "✗ /up не отвечает или воркер очереди не запущен" >&2
+$DC logs --tail=50 app queue >&2 || true
 if [ -n "$PREV" ]; then
   echo "→ откат на $PREV" >&2
   IMAGE_TAG="$PREV" $DC up -d

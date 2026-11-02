@@ -25,4 +25,7 @@ runuser -u ubuntu -- php artisan optimize --no-interaction
 if [ "$1" = "supervisord" ]; then
     exec "$@"
 fi
-exec runuser -u ubuntu -- "$@"
+# setpriv, а не runuser: runuser на SIGTERM даёт процессу 2 секунды и добивает SIGKILL,
+# а воркеру очереди нужно спокойно доделать текущую задачу при остановке контейнера
+export HOME="$(getent passwd ubuntu | cut -d: -f6)"
+exec setpriv --reuid=ubuntu --regid=ubuntu --init-groups -- "$@"
