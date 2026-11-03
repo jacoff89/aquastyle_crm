@@ -3,10 +3,9 @@
         "laravel-boost": {
             "command": "docker",
             "args": [
-                "compose",
                 "exec",
-                "-T",
-                "php-fpm",
+                "-i",
+                "aquastyle_crm-php-fpm",
                 "php",
                 "artisan",
                 "boost:mcp"

@@ -32,7 +32,7 @@ test:
 pint:
 	$(compose-env) exec -T php-fpm vendor/bin/pint
 
-# Обновить гайдлайны (CLAUDE.md) и скиллы Laravel Boost. Переменные BOOST_*_EXECUTABLE_PATH
+# Обновить гайдлайны (CLAUDE.md, AGENTS.md) и скиллы (.claude/skills, .agents/skills) Laravel Boost. Переменные BOOST_*_EXECUTABLE_PATH
 # заставляют Boost писать в инструкциях для ИИ команды через Docker, а не для хоста.
 # В .env их класть нельзя: MCP-инструменты Boost внутри контейнера тоже берут
 # путь к php из BOOST_PHP_EXECUTABLE_PATH и перестанут работать.
