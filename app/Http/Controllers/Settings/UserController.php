@@ -27,6 +27,7 @@ class UserController extends Controller
                 ->map(fn (User $user): array => [
                     'id' => $user->id,
                     'name' => $user->name,
+                    'lastName' => $user->last_name,
                     'email' => $user->email,
                     'phone' => $user->phone,
                     'roleLabel' => $user->rolesLabel(),
@@ -64,6 +65,7 @@ class UserController extends Controller
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
+                'lastName' => $user->last_name,
                 'email' => $user->email,
                 'phone' => $user->phone,
                 'roles' => $user->roles->map(fn (Role $role): string => $role->value)->values(),

@@ -43,7 +43,7 @@ defineProps({
                                 class="font-medium text-ink underline-offset-4 hover:text-sea-700 hover:underline"
                                 :class="{ 'text-muted': !user.isActive }"
                             >
-                                {{ user.name }}
+                                {{ [user.name, user.lastName].filter(Boolean).join(' ') }}
                             </Link>
                             <span v-if="user.isCurrentUser" class="ml-2 text-xs text-muted">это вы</span>
                         </td>

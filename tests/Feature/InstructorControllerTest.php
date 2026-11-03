@@ -51,7 +51,7 @@ class InstructorControllerTest extends TestCase
             ->get('/instructors')
             ->assertInertia(fn (Assert $page) => $page
                 ->has('instructors.0', fn (Assert $instructor) => $instructor
-                    ->hasAll(['id', 'name', 'email', 'phone', 'color', 'isActive', 'isAdmin'])
+                    ->hasAll(['id', 'name', 'lastName', 'email', 'phone', 'color', 'isActive', 'isAdmin'])
                     ->missing('password')));
     }
 
@@ -83,6 +83,7 @@ class InstructorControllerTest extends TestCase
             ->assertSessionHas('status', 'Добавлен инструктор: Ирина Волкова.');
 
         $this->assertSame('Ирина Волкова', $instructor->name);
+        $this->assertSame('Волкова', $instructor->last_name);
         $this->assertSame('+7 912 345-67-89', $instructor->phone);
         $this->assertSame('#0891b2', $instructor->color);
         $this->assertSame('Ведёт детские группы', $instructor->notes);
@@ -398,6 +399,7 @@ class InstructorControllerTest extends TestCase
     {
         return [
             'name' => 'Ирина Волкова',
+            'last_name' => 'Волкова',
             'email' => 'irina@aquastyle74.ru',
             'phone' => '+7 912 345-67-89',
             'color' => '#0891b2',

@@ -59,7 +59,7 @@ defineProps({
                                     class="font-medium underline-offset-4 hover:text-sea-700 hover:underline"
                                     :class="instructor.isActive ? 'text-ink' : 'text-muted'"
                                 >
-                                    {{ instructor.name }}
+                                    {{ [instructor.name, instructor.lastName].filter(Boolean).join(' ') }}
                                 </Link>
                                 <span v-if="instructor.isAdmin" class="rounded bg-depth-900/10 px-1.5 py-0.5 text-xs text-depth-800">
                                     Администратор

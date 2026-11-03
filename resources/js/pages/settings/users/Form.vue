@@ -18,6 +18,7 @@ const isSelf = computed(() => props.user?.isCurrentUser ?? false);
 
 const form = useForm({
     name: props.user?.name ?? '',
+    last_name: props.user?.lastName ?? '',
     email: props.user?.email ?? '',
     phone: props.user?.phone ?? '',
     roles: [...(props.user?.roles ?? ['instructor'])],
@@ -49,14 +50,20 @@ const submit = () => {
 </script>
 
 <template>
-    <AppLayout :title="isEditing ? user.name : 'Новый пользователь'">
+    <AppLayout :title="isEditing ? [user.name, user.lastName].filter(Boolean).join(' ') : 'Новый пользователь'">
         <form class="max-w-2xl space-y-8" novalidate @submit.prevent="submit">
             <section class="space-y-5 rounded-lg border border-line bg-white p-6" aria-labelledby="account-heading">
                 <h2 id="account-heading" class="text-lg font-semibold">Учётная запись</h2>
 
-                <FormField id="name" label="Имя" :error="form.errors.name">
-                    <TextInput id="name" v-model="form.name" autocomplete="off" required :invalid="Boolean(form.errors.name)" />
-                </FormField>
+                <div class="grid gap-5 sm:grid-cols-2">
+                    <FormField id="name" label="Имя" :error="form.errors.name">
+                        <TextInput id="name" v-model="form.name" autocomplete="off" required :invalid="Boolean(form.errors.name)" />
+                    </FormField>
+
+                    <FormField id="last_name" label="Фамилия" :error="form.errors.last_name">
+                        <TextInput id="last_name" v-model="form.last_name" autocomplete="off" :invalid="Boolean(form.errors.last_name)" />
+                    </FormField>
+                </div>
 
                 <div class="grid gap-5 sm:grid-cols-2">
                     <FormField id="email" label="Email" hint="Логин для входа." :error="form.errors.email">

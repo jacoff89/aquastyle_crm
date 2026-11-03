@@ -21,6 +21,7 @@ class StoreInstructorRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            'last_name' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class)],
             'phone' => ['nullable', 'string', 'max:32'],
             'color' => ['required', 'string', 'regex:/^#[0-9a-f]{6}$/'],

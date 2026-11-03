@@ -18,7 +18,7 @@ use Illuminate\Notifications\Notifiable;
  * An account. A user holds one or more roles: an administrator manages the system,
  * an instructor teaches and appears in the calendar. One person can be both.
  */
-#[Fillable(['name', 'email', 'password', 'phone', 'roles', 'is_active', 'color', 'notes'])]
+#[Fillable(['name', 'last_name', 'email', 'password', 'phone', 'roles', 'is_active', 'color', 'notes'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {

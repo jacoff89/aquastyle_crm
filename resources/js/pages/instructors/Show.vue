@@ -9,7 +9,7 @@ defineProps({
 </script>
 
 <template>
-    <AppLayout :title="instructor.name">
+    <AppLayout :title="[instructor.name, instructor.lastName].filter(Boolean).join(' ')">
         <template #actions>
             <Link
                 :href="`/instructors/${instructor.id}/edit`"

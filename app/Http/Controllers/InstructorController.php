@@ -34,6 +34,8 @@ class InstructorController extends Controller
                 ->map(fn (User $instructor): array => [
                     'id' => $instructor->id,
                     'name' => $instructor->name,
+                    'lastName' => $instructor->last_name,
+                    'lastName' => $instructor->last_name,
                     'email' => $instructor->email,
                     'phone' => $instructor->phone,
                     'color' => $instructor->color,
@@ -71,6 +73,7 @@ class InstructorController extends Controller
             'instructor' => [
                 'id' => $instructor->id,
                 'name' => $instructor->name,
+                'lastName' => $instructor->last_name,
                 'email' => $instructor->email,
                 'phone' => $instructor->phone,
                 'color' => $instructor->color,
@@ -89,6 +92,7 @@ class InstructorController extends Controller
             'instructor' => [
                 'id' => $instructor->id,
                 'name' => $instructor->name,
+                'lastName' => $instructor->last_name,
                 'email' => $instructor->email,
                 'phone' => $instructor->phone,
                 'color' => $instructor->color,

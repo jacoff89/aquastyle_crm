@@ -37,7 +37,7 @@ class UserControllerTest extends TestCase
             ->get('/settings/users')
             ->assertInertia(fn (Assert $page) => $page
                 ->has('users.0', fn (Assert $user) => $user
-                    ->hasAll(['id', 'name', 'email', 'phone', 'roleLabel', 'isActive', 'isCurrentUser'])
+                    ->hasAll(['id', 'name', 'lastName', 'email', 'phone', 'roleLabel', 'isActive', 'isCurrentUser'])
                     ->missing('password')));
     }
 
@@ -293,6 +293,7 @@ class UserControllerTest extends TestCase
     {
         return [
             'name' => 'Ирина Волкова',
+            'last_name' => 'Волкова',
             'email' => 'irina@aquastyle74.ru',
             'phone' => '+7 912 345-67-89',
             'roles' => ['instructor'],
