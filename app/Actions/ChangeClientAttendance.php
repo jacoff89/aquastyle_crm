@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Changes a client's status on an event, and optionally the note on the booking.
+ * Changes a client's status on an event, and optionally the note and the exercises on the booking.
  * Bringing a client who cancelled or did not come back takes a place again, so it needs
  * a free one. The statuses of a cancelled event are frozen: its clients can only be
  * marked as cancelled.
@@ -18,7 +18,7 @@ use Illuminate\Validation\ValidationException;
 class ChangeClientAttendance
 {
     /**
-     * @param  array{status: AttendanceStatus, notes?: ?string}  $changes
+     * @param  array{status: AttendanceStatus, notes?: ?string, exercise_ids?: list<int>}  $changes
      *
      * @throws ValidationException
      */
@@ -47,6 +47,10 @@ class ChangeClientAttendance
             }
 
             $booking->save();
+
+            if (array_key_exists('exercise_ids', $changes)) {
+                $booking->exercises()->sync($changes['exercise_ids']);
+            }
 
             return $booking;
         });

@@ -15,7 +15,7 @@ const props = defineProps({
 const emit = defineEmits(['summary', 'mark-done']);
 
 const bookings = ref([]);
-const meta = ref({ capacity: props.event.capacity, occupied: 0, canManage: false, canMarkAttendance: false });
+const meta = ref({ capacity: props.event.capacity, occupied: 0, canManage: false, canMarkAttendance: false, exercises: [] });
 const loading = ref(true);
 const message = ref('');
 const savingId = ref(null);
@@ -123,6 +123,39 @@ const saveNotes = async (row) => {
         applyListing(result.data);
     } else {
         message.value = failureText(result, 'Не удалось сохранить заметку. Попробуйте ещё раз.');
+    }
+};
+
+/* ---------- Упражнения клиента ---------- */
+
+const exercisesEditing = ref(null);
+const exercisesDraft = ref([]);
+
+/** Выбрать можно активные упражнения и те, что уже назначены клиенту, даже скрытые. */
+const exerciseOptions = (row) => {
+    const attached = row.exercises.filter((exercise) => !meta.value.exercises.some((option) => option.id === exercise.id));
+
+    return [...meta.value.exercises, ...attached].sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+};
+
+const startExercises = (row) => {
+    exercisesEditing.value = row.clientId;
+    exercisesDraft.value = row.exercises.map((exercise) => exercise.id);
+};
+
+const saveExercises = async (row) => {
+    message.value = '';
+    savingId.value = row.clientId;
+
+    const result = await props.request('patch', bookingUrl(row), { status: row.status, exercise_ids: exercisesDraft.value });
+
+    savingId.value = null;
+
+    if (result.status === 200) {
+        exercisesEditing.value = null;
+        applyListing(result.data);
+    } else {
+        message.value = failureText(result, 'Не удалось сохранить упражнения. Попробуйте ещё раз.');
     }
 };
 
@@ -361,6 +394,41 @@ onBeforeUnmount(() => {
                             @click="startNotes(row)"
                         >
                             {{ row.notes ? 'Изменить заметку' : 'Добавить заметку' }}
+                        </button>
+
+                        <p v-if="row.exercises.length && exercisesEditing !== row.clientId" class="mt-1 flex flex-wrap gap-1.5" aria-label="Упражнения">
+                            <span v-for="exercise in row.exercises" :key="exercise.id" class="rounded-full bg-sea-50 px-2.5 py-0.5 text-xs font-medium text-sea-700">
+                                {{ exercise.name }}
+                            </span>
+                        </p>
+
+                        <form v-if="exercisesEditing === row.clientId" class="mt-2 space-y-2" @submit.prevent="saveExercises(row)">
+                            <fieldset>
+                                <legend class="sr-only">Упражнения: {{ row.name }}</legend>
+                                <p v-if="!exerciseOptions(row).length" class="text-sm text-muted">Упражнений пока нет. Их добавляет администратор в настройках.</p>
+                                <label v-for="exercise in exerciseOptions(row)" :key="exercise.id" class="flex items-start gap-2 py-0.5 text-sm text-ink">
+                                    <input v-model="exercisesDraft" type="checkbox" :value="exercise.id" class="mt-0.5 size-4 rounded border-line accent-sea-600" />
+                                    {{ exercise.name }}
+                                </label>
+                            </fieldset>
+                            <div class="flex items-center gap-3">
+                                <button
+                                    type="submit"
+                                    class="rounded-md bg-sea-600 px-3 py-2 text-sm font-medium text-white hover:bg-sea-700 disabled:opacity-60"
+                                    :disabled="savingId === row.clientId"
+                                >
+                                    Сохранить
+                                </button>
+                                <button type="button" class="text-sm text-muted hover:text-ink" @click="exercisesEditing = null">Отмена</button>
+                            </div>
+                        </form>
+                        <button
+                            v-else-if="!isLocked(row)"
+                            type="button"
+                            class="mt-1 block text-sm text-muted underline-offset-4 hover:text-ink hover:underline"
+                            @click="startExercises(row)"
+                        >
+                            {{ row.exercises.length ? 'Изменить упражнения' : 'Добавить упражнения' }}
                         </button>
                     </div>
 

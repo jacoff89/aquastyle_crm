@@ -30,6 +30,7 @@ const sections = computed(() =>
 const settings = computed(() =>
     [
         page.props.can.manageEventTypes && { label: 'Типы занятий', href: '/settings/event-types', icon: 'types' },
+        page.props.can.manageExercises && { label: 'Упражнения', href: '/settings/exercises', icon: 'exercises' },
         page.props.can.manageUsers && { label: 'Пользователи', href: '/settings/users', icon: 'users' },
     ].filter(Boolean),
 );

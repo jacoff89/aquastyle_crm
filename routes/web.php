@@ -15,6 +15,7 @@ use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Settings\EventTypeController;
 use App\Http\Controllers\Settings\EventTypePositionController;
+use App\Http\Controllers\Settings\ExerciseController;
 use App\Http\Controllers\Settings\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -61,6 +62,10 @@ Route::middleware('auth')->group(function () {
         Route::post('event-types', [EventTypeController::class, 'store'])->name('event-types.store');
         Route::patch('event-types/{eventType}', [EventTypeController::class, 'update'])->name('event-types.update');
         Route::patch('event-types/{eventType}/position', [EventTypePositionController::class, 'update'])->name('event-types.position');
+
+        Route::get('exercises', [ExerciseController::class, 'index'])->name('exercises.index');
+        Route::post('exercises', [ExerciseController::class, 'store'])->name('exercises.store');
+        Route::patch('exercises/{exercise}', [ExerciseController::class, 'update'])->name('exercises.update');
 
         Route::resource('users', UserController::class)->except(['show', 'destroy']);
     });

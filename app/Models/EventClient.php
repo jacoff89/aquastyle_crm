@@ -6,6 +6,7 @@ use App\Enums\AttendanceStatus;
 use Database\Factories\EventClientFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 
 /**
@@ -62,5 +63,15 @@ class EventClient extends Pivot
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class)->withTrashed();
+    }
+
+    /**
+     * The exercises attached to the client on this event.
+     *
+     * @return BelongsToMany<Exercise, $this>
+     */
+    public function exercises(): BelongsToMany
+    {
+        return $this->belongsToMany(Exercise::class, 'event_client_exercise', 'event_client_id', 'exercise_id')->orderBy('exercises.name')->orderBy('exercises.id');
     }
 }

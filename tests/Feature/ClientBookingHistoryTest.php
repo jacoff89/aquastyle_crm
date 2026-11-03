@@ -7,6 +7,7 @@ use App\Models\Client;
 use App\Models\Event;
 use App\Models\EventClient;
 use App\Models\EventType;
+use App\Models\Exercise;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -177,6 +178,30 @@ class ClientBookingHistoryTest extends TestCase
     /**
      * @param  array<string, mixed>  $attributes
      */
+    public function test_booking_notes_and_exercises_are_shown_in_upcoming_and_history(): void
+    {
+        $client = Client::factory()->create();
+        $lead = User::factory()->create();
+        $pool = EventType::query()->where('name', 'Бассейн')->firstOrFail();
+        $upcoming = $this->event($lead, $pool->id, '2026-11-12 10:00', '2026-11-12 11:30');
+        $past = $this->event($lead, $pool->id, '2026-11-05 10:00', '2026-11-05 11:30');
+        $upcomingBooking = EventClient::factory()->forEvent($upcoming)->forClient($client)->create(['notes' => 'Нужны ласты 42']);
+        $pastBooking = $this->book($past, $client, AttendanceStatus::Attended);
+        $upcomingBooking->exercises()->attach(Exercise::factory()->create(['name' => 'Снятие маски']));
+        $pastBooking->exercises()->attach([
+            Exercise::factory()->create(['name' => 'Всплытие'])->id,
+            Exercise::factory()->hidden()->create(['name' => 'Буксировка'])->id,
+        ]);
+
+        $this->actingAs($this->user(true))
+            ->get("/clients/{$client->id}")
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('upcoming.0.notes', 'Нужны ласты 42')
+                ->where('upcoming.0.exercises', ['Снятие маски'])
+                ->where('history.0.notes', null)
+                ->where('history.0.exercises', ['Буксировка', 'Всплытие']));
+    }
+
     private function event(User $lead, int $typeId, string $startsAt, string $endsAt, array $attributes = [], bool $cancelled = false): Event
     {
         $factory = Event::factory()->ledBy($lead)->at($startsAt, $endsAt);

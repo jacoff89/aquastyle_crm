@@ -10,6 +10,7 @@ use App\Http\Resources\EventClientResource;
 use App\Models\Client;
 use App\Models\Event;
 use App\Models\EventClient;
+use App\Models\Exercise;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -54,7 +55,7 @@ class EventClientController extends Controller
         $bookings = $event->bookings()
             ->select('event_client.*')
             ->join('clients', 'clients.id', '=', 'event_client.client_id')
-            ->with('client')
+            ->with(['client', 'exercises'])
             ->orderBy('clients.last_name')
             ->orderBy('clients.first_name')
             ->orderBy('clients.middle_name')
@@ -67,6 +68,9 @@ class EventClientController extends Controller
                 'occupied' => $bookings->filter(fn (EventClient $booking): bool => $booking->status->occupiesPlace())->count(),
                 'canManage' => $request->user()->can('manageClients', $event),
                 'canMarkAttendance' => $request->user()->can('markAttendance', $event),
+                'exercises' => Exercise::query()->active()->ordered()->get()
+                    ->map(fn (Exercise $exercise): array => ['id' => $exercise->id, 'name' => $exercise->name])
+                    ->all(),
             ]])
             ->response()
             ->setStatusCode($status);

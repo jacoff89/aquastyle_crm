@@ -3,11 +3,12 @@
 namespace App\Http\Resources;
 
 use App\Models\EventClient;
+use App\Models\Exercise;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * A client in the list of an event's window. Expects `client` to be loaded.
+ * A client in the list of an event's window. Expects `client` and `exercises` to be loaded.
  *
  * @mixin EventClient
  */
@@ -27,6 +28,7 @@ class EventClientResource extends JsonResource
             'statusLabel' => $this->status->label(),
             'isAttendanceMark' => $this->status->isAttendanceMark(),
             'notes' => $this->notes,
+            'exercises' => $this->exercises->map(fn (Exercise $exercise): array => ['id' => $exercise->id, 'name' => $exercise->name])->all(),
         ];
     }
 }

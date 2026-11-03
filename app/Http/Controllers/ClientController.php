@@ -10,6 +10,7 @@ use App\Models\Client;
 use App\Models\Event;
 use App\Models\EventClient;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -135,8 +136,8 @@ class ClientController extends Controller
                 ->map(fn (Client $child): array => $this->parentData($child))->values(),
             'canHaveChildren' => $client->parent_id === null,
             'canDelete' => $request->user()->can('delete', $client),
-            'upcoming' => $this->upcomingBookings($client, $now)->get()->map($this->bookingRow(...))->values(),
-            'history' => $this->pastBookings($client, $now)->limit(self::HISTORY_LIMIT)->get()->map($this->bookingRow(...))->values(),
+            'upcoming' => $this->withExercises($this->upcomingBookings($client, $now)->get())->map($this->bookingRow(...))->values(),
+            'history' => $this->withExercises($this->pastBookings($client, $now)->limit(self::HISTORY_LIMIT)->get())->map($this->bookingRow(...))->values(),
             'historyTotal' => $this->pastBookings($client, $now)->count(),
         ]);
     }
@@ -248,6 +249,19 @@ class ClientController extends Controller
     }
 
     /**
+     * Loads the exercises of every booking in one query.
+     *
+     * @param  Collection<int, Event>  $events
+     * @return Collection<int, Event>
+     */
+    private function withExercises(Collection $events): Collection
+    {
+        (new Collection($events->pluck('pivot')))->load('exercises');
+
+        return $events;
+    }
+
+    /**
      * One line of the client's classes: when, what and where, and what happened to the client.
      *
      * @return array<string, mixed>
@@ -266,6 +280,8 @@ class ClientController extends Controller
             'isEventCancelled' => $event->status === EventStatus::Cancelled,
             'status' => $event->pivot->status->value,
             'statusLabel' => $event->pivot->status->label(),
+            'notes' => $event->pivot->notes,
+            'exercises' => $event->pivot->exercises->pluck('name')->all(),
             'calendarUrl' => route('calendar', ['view' => 'day', 'date' => $event->starts_at->format('Y-m-d')]),
         ];
     }

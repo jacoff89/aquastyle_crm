@@ -24,7 +24,8 @@ class HandleInertiaRequestsTest extends TestCase
                 ->where('auth.user.roleLabel', 'Администратор')
                 ->where('can.manageUsers', true)
                 ->where('can.manageInstructors', true)
-                ->where('can.manageEventTypes', true));
+                ->where('can.manageEventTypes', true)
+                ->where('can.manageExercises', true));
     }
 
     public function test_administrator_who_teaches_has_both_roles_in_the_menu(): void
@@ -45,6 +46,7 @@ class HandleInertiaRequestsTest extends TestCase
                 ->where('auth.user.roleLabel', 'Инструктор')
                 ->where('can.manageUsers', false)
                 ->where('can.manageInstructors', false)
-                ->where('can.manageEventTypes', false));
+                ->where('can.manageEventTypes', false)
+                ->where('can.manageExercises', false));
     }
 }

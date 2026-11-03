@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Enums\Role;
 use App\Models\EventType;
+use App\Models\Exercise;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -56,6 +57,7 @@ class HandleInertiaRequests extends Middleware
                 'manageUsers' => $user?->can('viewAny', User::class) ?? false,
                 'manageInstructors' => $user?->can('viewAny', User::class) ?? false,
                 'manageEventTypes' => $user?->can('viewAny', EventType::class) ?? false,
+                'manageExercises' => $user?->can('viewAny', Exercise::class) ?? false,
             ],
             'flash' => [
                 'status' => fn () => $request->session()->get('status'),

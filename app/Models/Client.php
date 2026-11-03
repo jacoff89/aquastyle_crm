@@ -113,7 +113,7 @@ class Client extends Model
     {
         return $this->belongsToMany(Event::class, 'event_client')
             ->using(EventClient::class)
-            ->withPivot('status', 'notes');
+            ->withPivot('id', 'status', 'notes');
     }
 
     /**
