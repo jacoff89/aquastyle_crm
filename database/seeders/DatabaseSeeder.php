@@ -18,8 +18,8 @@ use Illuminate\Support\Collection;
 /**
  * Demo data for local development: accounts of both roles, clients, and a fortnight
  * of events around today with every status, so each screen has something to show.
- * On production the first administrator is created with `php artisan app:create-admin`
- * instead.
+ * On production the first administrator is created inside the app container instead:
+ * `docker exec -it -u ubuntu aquastyle_crm php artisan app:create-admin`.
  *
  * Running the seeder again changes nothing that already exists.
  */
