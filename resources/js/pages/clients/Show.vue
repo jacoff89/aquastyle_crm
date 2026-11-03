@@ -1,6 +1,7 @@
 <script setup>
 import { Link, router } from '@inertiajs/vue3';
 import ClientBookings from '../../components/ClientBookings.vue';
+import ClientCommunications from '../../components/ClientCommunications.vue';
 import AppLayout from '../../layouts/AppLayout.vue';
 
 const props = defineProps({
@@ -12,6 +13,8 @@ const props = defineProps({
     upcoming: { type: Array, required: true },
     history: { type: Array, required: true },
     historyTotal: { type: Number, required: true },
+    communications: { type: Array, required: true },
+    communicationChannels: { type: Array, required: true },
 });
 
 const destroy = () => {
@@ -114,6 +117,13 @@ const destroy = () => {
                 <p v-if="historyTotal > history.length" class="mt-2 text-sm text-muted">
                     Показаны последние {{ history.length }} из {{ historyTotal }}.
                 </p>
+            </section>
+
+            <section aria-labelledby="communications-heading">
+                <h2 id="communications-heading" class="text-lg font-semibold">Коммуникации</h2>
+                <div class="mt-3">
+                    <ClientCommunications :client-id="client.id" :communications="communications" :channels="communicationChannels" />
+                </div>
             </section>
 
             <Link href="/clients" class="inline-block text-sm text-muted hover:text-ink">← Все клиенты</Link>

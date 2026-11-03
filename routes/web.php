@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\CalendarEventController;
+use App\Http\Controllers\ClientCommunicationController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ClientDuplicateController;
 use App\Http\Controllers\ClientSearchController;
@@ -54,6 +55,9 @@ Route::middleware('auth')->group(function () {
     Route::get('clients/duplicates', ClientDuplicateController::class)->name('clients.duplicates');
     Route::get('clients/search', ClientSearchController::class)->name('clients.search');
     Route::resource('clients', ClientController::class);
+    Route::post('clients/{client}/communications', [ClientCommunicationController::class, 'store'])->name('clients.communications.store');
+    Route::patch('communications/{communication}', [ClientCommunicationController::class, 'update'])->name('communications.update');
+    Route::delete('communications/{communication}', [ClientCommunicationController::class, 'destroy'])->name('communications.destroy');
 
     Route::resource('instructors', InstructorController::class)->except(['destroy']);
 

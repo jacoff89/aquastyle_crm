@@ -117,6 +117,16 @@ class Client extends Model
     }
 
     /**
+     * The recorded contacts with the client.
+     *
+     * @return HasMany<Communication, $this>
+     */
+    public function communications(): HasMany
+    {
+        return $this->hasMany(Communication::class);
+    }
+
+    /**
      * Last name, first name and middle name in one line.
      */
     public function fullName(): string

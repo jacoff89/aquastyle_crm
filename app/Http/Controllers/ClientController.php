@@ -3,12 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Enums\AttendanceStatus;
+use App\Enums\CommunicationChannel;
 use App\Enums\EventStatus;
 use App\Http\Requests\Clients\StoreClientRequest;
 use App\Http\Requests\Clients\UpdateClientRequest;
 use App\Models\Client;
+use App\Models\Communication;
 use App\Models\Event;
 use App\Models\EventClient;
+use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -139,6 +142,9 @@ class ClientController extends Controller
             'upcoming' => $this->withExercises($this->upcomingBookings($client, $now)->get())->map($this->bookingRow(...))->values(),
             'history' => $this->withExercises($this->pastBookings($client, $now)->limit(self::HISTORY_LIMIT)->get())->map($this->bookingRow(...))->values(),
             'historyTotal' => $this->pastBookings($client, $now)->count(),
+            'communications' => $client->communications()->with('creator')->latestFirst()->get()
+                ->map(fn (Communication $communication): array => $this->communicationRow($communication, $request->user()))->values(),
+            'communicationChannels' => CommunicationChannel::options(),
         ]);
     }
 
@@ -283,6 +289,25 @@ class ClientController extends Controller
             'notes' => $event->pivot->notes,
             'exercises' => $event->pivot->exercises->pluck('name')->all(),
             'calendarUrl' => route('calendar', ['view' => 'day', 'date' => $event->starts_at->format('Y-m-d')]),
+        ];
+    }
+
+    /**
+     * One recorded contact. `occurredAt` is in the form of the datetime-local input.
+     *
+     * @return array<string, mixed>
+     */
+    private function communicationRow(Communication $communication, User $user): array
+    {
+        return [
+            'id' => $communication->id,
+            'channel' => $communication->channel->value,
+            'channelLabel' => $communication->channel->label(),
+            'occurredAt' => $communication->occurred_at->format('Y-m-d\TH:i'),
+            'occurredAtLabel' => $communication->occurred_at->format('d.m.Y H:i'),
+            'notes' => $communication->notes,
+            'authorName' => $communication->creator?->name,
+            'canManage' => $user->can('update', $communication),
         ];
     }
 }
