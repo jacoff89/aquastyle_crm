@@ -9,5 +9,7 @@
   - `php artisan tinker --execute '...'` → `docker compose exec -T php-fpm php artisan tinker --execute '...'`
   - `composer show --direct` → `docker compose exec -T php-fpm composer show --direct`
 - Run Node commands in the `nodejs` container: `docker compose exec -T nodejs npm run build`. For the Vite dev server ask the user to run `make dev`.
-- Prefer a `Makefile` target when one does exactly what is needed (`make migrate`, `make test`, `make pint`, `make npm-build`).
+- Prefer a `Makefile` target when one does exactly what is needed (`make migrate`, `make test`, `make npm-build`).
+- `make pint` formats the whole project. Run it only when the user asks. After your own changes format just the changed files with `docker compose exec -T php-fpm vendor/bin/pint --dirty --format agent`.
+- Regenerate these guidelines and the skills with `make boost-update`, never with a bare `php artisan boost:update`: the make target is what keeps every command in them pointed at Docker.
 - If a command fails because a container is not running, ask the user to run `make up` instead of falling back to the host.

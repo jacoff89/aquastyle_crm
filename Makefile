@@ -1,4 +1,4 @@
-.PHONY: pull up build down dev composer-install npm-install npm-build migrate create-admin test pint setup deploy-dev deploy-prod queue-logs queue-failed queue-retry
+.PHONY: pull up build down dev composer-install npm-install npm-build migrate create-admin test pint boost-update setup deploy-dev deploy-prod queue-logs queue-failed queue-retry
 
 compose-env = env UID=$$(id -u) GID=$$(id -g) docker compose
 
@@ -31,6 +31,18 @@ test:
 
 pint:
 	$(compose-env) exec -T php-fpm vendor/bin/pint
+
+# Обновить гайдлайны (CLAUDE.md) и скиллы Laravel Boost. Переменные BOOST_*_EXECUTABLE_PATH
+# заставляют Boost писать в инструкциях для ИИ команды через Docker, а не для хоста.
+# В .env их класть нельзя: MCP-инструменты Boost внутри контейнера тоже берут
+# путь к php из BOOST_PHP_EXECUTABLE_PATH и перестанут работать.
+boost-update:
+	$(compose-env) exec -T \
+		-e BOOST_PHP_EXECUTABLE_PATH="docker compose exec -T php-fpm php" \
+		-e BOOST_COMPOSER_EXECUTABLE_PATH="docker compose exec -T php-fpm composer" \
+		-e BOOST_VENDOR_BIN_EXECUTABLE_PATH="docker compose exec -T php-fpm vendor/bin/" \
+		-e BOOST_NPM_EXECUTABLE_PATH="docker compose exec -T nodejs npm" \
+		php-fpm php artisan boost:update --no-interaction
 
 setup: pull build up composer-install npm-install
 	@if ! grep -q '^APP_KEY=[^[:space:]]' .env 2>/dev/null; then \

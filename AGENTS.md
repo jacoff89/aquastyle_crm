@@ -8,5 +8,5 @@ PHP, Composer, Node and the database run only inside Docker containers. Do not i
 
 - PHP commands: `docker compose exec -T php-fpm php artisan route:list`, `docker compose exec -T php-fpm vendor/bin/pint --dirty --format agent`.
 - Node commands: `docker compose exec -T nodejs npm run build`.
-- Prefer `Makefile` targets when one fits (`make migrate`, `make test`, `make pint`).
+- Prefer `Makefile` targets when one fits (`make migrate`, `make test`). `make pint` formats the whole project: run it only when the user asks, and after your own changes use `pint --dirty` as above.
 - If a container is not running, ask the user to run `make up`.
