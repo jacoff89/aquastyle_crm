@@ -114,6 +114,18 @@ class CalendarEventControllerTest extends TestCase
             ->assertJsonCount(2, 'data');
     }
 
+    public function test_events_can_be_narrowed_to_those_without_instructor(): void
+    {
+        Event::factory()->ledBy(User::factory()->create())->at('2026-11-04 10:00', '2026-11-04 11:00')->create(['title' => 'С инструктором']);
+        Event::factory()->at('2026-11-04 12:00', '2026-11-04 13:00')->create(['title' => 'Без инструктора']);
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->getJson('/calendar/events?start=2026-11-04&end=2026-11-04&instructor_id=unassigned')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.title', 'Без инструктора');
+    }
+
     public function test_events_can_be_narrowed_to_one_instructor_lead_or_assistant(): void
     {
         $anna = User::factory()->create(['name' => 'Анна']);

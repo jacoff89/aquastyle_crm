@@ -14,6 +14,7 @@ use App\Http\Controllers\EventController;
 use App\Http\Controllers\InstructorController;
 use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ScheduleRangeController;
 use App\Http\Controllers\Settings\EventTypeController;
 use App\Http\Controllers\Settings\EventTypePositionController;
 use App\Http\Controllers\Settings\ExerciseController;
@@ -59,6 +60,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('communications/{communication}', [ClientCommunicationController::class, 'update'])->name('communications.update');
     Route::delete('communications/{communication}', [ClientCommunicationController::class, 'destroy'])->name('communications.destroy');
 
+    Route::patch('schedule-range', [ScheduleRangeController::class, 'update'])->name('schedule-range.update');
     Route::resource('instructors', InstructorController::class)->except(['destroy']);
 
     Route::prefix('settings')->name('settings.')->group(function () {

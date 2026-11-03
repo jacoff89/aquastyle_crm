@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\Role;
+use App\Enums\ScheduleRange;
 use App\Notifications\ResetPasswordNotification;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -37,7 +38,16 @@ class User extends Authenticatable
             'password' => 'hashed',
             'roles' => AsEnumCollection::of(Role::class),
             'is_active' => 'boolean',
+            'schedule_range' => ScheduleRange::class,
         ];
+    }
+
+    /**
+     * How far ahead the user looks at an instructor's schedule: their own choice, or the default.
+     */
+    public function preferredScheduleRange(): ScheduleRange
+    {
+        return $this->schedule_range ?? ScheduleRange::default();
     }
 
     /**

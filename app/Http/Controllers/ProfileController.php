@@ -2,17 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\ListInstructorSchedule;
+use App\Enums\ScheduleRange;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * The signed-in user's own profile: name and phone.
+ * The signed-in user's own profile: name and phone, and the schedule when they are an instructor.
  */
 class ProfileController extends Controller
 {
-    public function edit(Request $request): Response
+    public function edit(Request $request, ListInstructorSchedule $schedule): Response
     {
         $user = $request->user();
 
@@ -23,6 +25,9 @@ class ProfileController extends Controller
                 'phone' => $user->phone,
                 'role' => $user->rolesLabel(),
             ],
+            'schedule' => $user->isInstructor() ? $schedule->handle($user, $user->preferredScheduleRange()) : null,
+            'scheduleRange' => $user->preferredScheduleRange()->value,
+            'scheduleRanges' => ScheduleRange::options(),
         ]);
     }
 

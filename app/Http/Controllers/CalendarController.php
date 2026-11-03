@@ -35,7 +35,7 @@ class CalendarController extends Controller
             'initialDate' => $date,
             'initialView' => $view,
             'initialFilters' => [
-                'instructorId' => $this->requestedId($request->query('instructor_id'), User::instructors()),
+                'instructorId' => $request->query('instructor_id') === 'unassigned' ? 'unassigned' : $this->requestedId($request->query('instructor_id'), User::instructors()),
                 'eventTypeId' => $this->requestedId($request->query('event_type_id'), EventType::query()),
             ],
             'instructors' => User::instructors()

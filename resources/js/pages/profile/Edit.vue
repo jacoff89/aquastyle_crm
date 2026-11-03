@@ -1,12 +1,17 @@
 <script setup>
 import { useForm } from '@inertiajs/vue3';
 import FormField from '../../components/FormField.vue';
+import InstructorSchedule from '../../components/InstructorSchedule.vue';
 import PrimaryButton from '../../components/PrimaryButton.vue';
 import TextInput from '../../components/TextInput.vue';
 import AppLayout from '../../layouts/AppLayout.vue';
 
 const props = defineProps({
     profile: { type: Object, required: true },
+    /** Расписание показывается только инструктору, у остальных null. */
+    schedule: { type: Array, default: null },
+    scheduleRange: { type: String, required: true },
+    scheduleRanges: { type: Array, required: true },
 });
 
 const profileForm = useForm({
@@ -110,6 +115,10 @@ const changePassword = () => {
                     <PrimaryButton :processing="passwordForm.processing">Изменить пароль</PrimaryButton>
                 </form>
             </section>
+        </div>
+
+        <div v-if="schedule" class="mt-8 max-w-4xl">
+            <InstructorSchedule :schedule="schedule" :schedule-range="scheduleRange" :schedule-ranges="scheduleRanges" />
         </div>
     </AppLayout>
 </template>

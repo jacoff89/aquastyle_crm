@@ -204,7 +204,7 @@ const splits = computed(() => {
         .filter((instructor) => instructor.isActive || busyIds.has(instructor.id))
         .map((instructor) => ({ id: instructor.id, label: instructor.name, color: instructor.color }));
 
-    if (instructorFilter.value === '') {
+    if (instructorFilter.value === '' || instructorFilter.value === UNASSIGNED) {
         columns.push({ id: UNASSIGNED, label: 'Без инструктора', color: null });
     }
 
@@ -515,6 +515,7 @@ const isEmptyPeriod = computed(() => loaded.value && !loading.value && events.va
             <FormField id="filter-instructor" label="Инструктор" class="w-full sm:w-56">
                 <SelectInput id="filter-instructor" v-model="instructorFilter">
                     <option value="">Все инструкторы</option>
+                    <option :value="UNASSIGNED" class="bg-slate-100 font-medium text-slate-600">Не назначен</option>
                     <option v-for="instructor in instructors" :key="instructor.id" :value="instructor.id">
                         {{ instructor.name }}{{ instructor.isActive ? '' : ' (отключён)' }}
                     </option>

@@ -21,12 +21,15 @@ use Illuminate\Validation\Rule;
  * shows them faded.
  *
  * The calendar can be narrowed to one instructor (lead or assistant) with `instructor_id`
- * and to one event type with `event_type_id`. Deactivated instructors and hidden types
+ * (or to events with no instructor, `instructor_id=unassigned`) and to one event type with `event_type_id`. Deactivated instructors and hidden types
  * can be filtered by too: their past events stay in the calendar.
  */
 class CalendarEventController extends Controller
 {
     private const MAX_DAYS = 62;
+
+    /** The `instructor_id` value that selects events with no instructor at all. */
+    private const UNASSIGNED = 'unassigned';
 
     public function __invoke(Request $request): AnonymousResourceCollection
     {
@@ -35,9 +38,11 @@ class CalendarEventController extends Controller
         $validated = $request->validate([
             'start' => ['required', 'date_format:Y-m-d'],
             'end' => ['required', 'date_format:Y-m-d', 'after_or_equal:start'],
-            'instructor_id' => ['nullable', 'integer', Rule::exists(User::class, 'id')->where(
-                fn (QueryBuilder $query) => $query->whereJsonContains('roles', Role::Instructor->value),
-            )],
+            'instructor_id' => $request->query('instructor_id') === self::UNASSIGNED
+                ? ['string']
+                : ['nullable', 'integer', Rule::exists(User::class, 'id')->where(
+                    fn (QueryBuilder $query) => $query->whereJsonContains('roles', Role::Instructor->value),
+                )],
             'event_type_id' => ['nullable', 'integer', Rule::exists(EventType::class, 'id')],
         ]);
 
@@ -52,7 +57,8 @@ class CalendarEventController extends Controller
             ->with(['type', 'instructors'])
             ->withOccupiedPlacesCount()
             ->overlapping($start, $end)
-            ->when($request->filled('instructor_id'), fn (Builder $query) => $query->withInstructor($request->integer('instructor_id')))
+            ->when($request->query('instructor_id') === self::UNASSIGNED, fn (Builder $query) => $query->whereDoesntHave('instructors'))
+            ->when($request->filled('instructor_id') && $request->query('instructor_id') !== self::UNASSIGNED, fn (Builder $query) => $query->withInstructor($request->integer('instructor_id')))
             ->when($request->filled('event_type_id'), fn (Builder $query) => $query->whereIn('event_type_id', EventType::query()->findOrFail($request->integer('event_type_id'))->idsWithChildren()))
             ->orderBy('starts_at')
             ->orderBy('id')

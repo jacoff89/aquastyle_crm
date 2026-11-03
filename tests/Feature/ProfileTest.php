@@ -2,8 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Enums\Role;
+use App\Models\Event;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -24,6 +27,36 @@ class ProfileTest extends TestCase
                 ->where('profile.name', 'Иван Сидоров')
                 ->where('profile.phone', '+7 900 000-00-00')
                 ->where('profile.role', 'Инструктор'));
+    }
+
+    public function test_instructor_sees_own_schedule_in_profile(): void
+    {
+        Carbon::setTestNow('2026-11-04 12:00');
+        $instructor = User::factory()->create();
+        Event::factory()->ledBy($instructor)->at('2026-11-05 10:00', '2026-11-05 11:00')->create(['title' => 'Моё']);
+        Event::factory()->ledBy(User::factory()->create())->at('2026-11-05 12:00', '2026-11-05 13:00')->create(['title' => 'Чужое']);
+
+        $this->actingAs($instructor)
+            ->get('/profile')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('scheduleRange', '2w')
+                ->has('scheduleRanges', 5)
+                ->has('schedule', 1)
+                ->where('schedule.0.title', 'Моё'));
+
+        $this->actingAs($instructor)->patch('/schedule-range', ['range' => '3d']);
+
+        $this->actingAs($instructor->fresh())->get('/profile')
+            ->assertInertia(fn (Assert $page) => $page->where('scheduleRange', '3d'));
+    }
+
+    public function test_user_without_instructor_role_has_no_schedule_in_profile(): void
+    {
+        $admin = User::factory()->admin()->create(['roles' => [Role::Admin]]);
+
+        $this->actingAs($admin)
+            ->get('/profile')
+            ->assertInertia(fn (Assert $page) => $page->where('schedule', null));
     }
 
     public function test_user_can_update_name_and_phone(): void

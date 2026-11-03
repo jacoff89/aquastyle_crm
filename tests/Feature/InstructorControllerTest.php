@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Enums\AttendanceStatus;
 use App\Enums\Role;
 use App\Models\Event;
+use App\Models\EventClient;
 use App\Models\EventType;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -185,6 +187,54 @@ class InstructorControllerTest extends TestCase
                 ->missing('instructor.password'));
     }
 
+    public function test_schedule_range_defaults_to_two_weeks_and_follows_the_saved_choice(): void
+    {
+        Carbon::setTestNow('2026-11-04 12:00');
+        $instructor = User::factory()->create();
+        $viewer = User::factory()->admin()->create();
+        Event::factory()->ledBy($instructor)->at('2026-11-05 10:00', '2026-11-05 11:00')->create(['title' => 'Завтра']);
+        Event::factory()->ledBy($instructor)->at('2026-11-12 10:00', '2026-11-12 11:00')->create(['title' => 'Через неделю']);
+        Event::factory()->ledBy($instructor)->at('2026-12-01 10:00', '2026-12-01 11:00')->create(['title' => 'Через месяц']);
+        Event::factory()->ledBy($instructor)->at('2027-01-20 10:00', '2027-01-20 11:00')->create(['title' => 'Через два с половиной месяца']);
+
+        $this->actingAs($viewer)->get("/instructors/{$instructor->id}")
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('scheduleRange', '2w')
+                ->has('scheduleRanges', 5)
+                ->has('schedule', 2));
+
+        $expected = ['3d' => 1, '1w' => 1, '1m' => 3, '3m' => 4];
+
+        foreach ($expected as $range => $count) {
+            $this->actingAs($viewer)->patch('/schedule-range', ['range' => $range])->assertRedirect();
+
+            $this->actingAs($viewer->fresh())->get("/instructors/{$instructor->id}")
+                ->assertInertia(fn (Assert $page) => $page->where('scheduleRange', $range)->has('schedule', $count));
+        }
+
+        $this->assertSame('3m', $viewer->fresh()->schedule_range->value);
+    }
+
+    public function test_schedule_range_is_remembered_per_user(): void
+    {
+        $instructor = User::factory()->create();
+        $other = User::factory()->admin()->create();
+
+        $this->actingAs(User::factory()->admin()->create())->patch('/schedule-range', ['range' => '1m']);
+
+        $this->actingAs($other)->get("/instructors/{$instructor->id}")
+            ->assertInertia(fn (Assert $page) => $page->where('scheduleRange', '2w'));
+    }
+
+    public function test_schedule_range_must_be_one_of_the_offered(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->patch('/schedule-range', ['range' => '10y'])->assertSessionHasErrors('range');
+
+        $this->assertNull($user->fresh()->schedule_range);
+    }
+
     public function test_show_page_lists_the_schedule_for_the_next_two_weeks(): void
     {
         Carbon::setTestNow('2026-11-04 12:00');
@@ -193,26 +243,29 @@ class InstructorControllerTest extends TestCase
 
         Event::factory()->ledBy($instructor)->at('2026-11-03 10:00', '2026-11-03 11:00')->create(['title' => 'Вчера']);
         Event::factory()->ledBy($instructor)->at('2026-11-04 09:00', '2026-11-04 10:00')->create(['title' => 'Сегодня утром']);
-        Event::factory()->ledBy(User::factory()->create(), [$instructor])->at('2026-11-06 18:00', '2026-11-06 19:30')
+        $deepPool = Event::factory()->ledBy(User::factory()->create(), [$instructor])->at('2026-11-06 18:00', '2026-11-06 19:30')
             ->create(['event_type_id' => $pool->id, 'location' => 'Дельфин']);
         Event::factory()->ledBy($instructor)->cancelled()->at('2026-11-10 10:00', '2026-11-10 11:00')->create(['title' => 'Отменённое']);
         Event::factory()->ledBy($instructor)->at('2026-11-18 10:00', '2026-11-18 11:00')->create(['title' => 'Через две недели']);
         Event::factory()->ledBy(User::factory()->create())->at('2026-11-05 10:00', '2026-11-05 11:00')->create(['title' => 'Чужое']);
 
+        foreach ([AttendanceStatus::Booked, AttendanceStatus::Attended, AttendanceStatus::NoShow, AttendanceStatus::Cancelled] as $status) {
+            EventClient::factory()->forEvent($deepPool)->create(['status' => $status]);
+        }
+
         $this->actingAs(User::factory()->admin()->create())
             ->get("/instructors/{$instructor->id}")
             ->assertInertia(fn (Assert $page) => $page
                 ->has('schedule', 3)
+                ->where('schedule.0.clientsCount', 0)
+                ->where('schedule.1.clientsCount', 2)
                 ->where('schedule.0.title', 'Сегодня утром')
-                ->where('schedule.0.role', 'Ведущий')
                 ->where('schedule.1.title', 'Глубокий бассейн')
                 ->where('schedule.1.date', '2026-11-06')
                 ->where('schedule.1.time', '18:00–19:30')
                 ->where('schedule.1.location', 'Дельфин')
-                ->where('schedule.1.role', 'Помощник')
                 ->where('schedule.2.title', 'Отменённое')
-                ->where('schedule.2.isCancelled', true)
-                ->where('schedule.2.statusLabel', 'Отменено'));
+                ->where('schedule.2.isCancelled', true));
     }
 
     public function test_admin_account_is_not_found_among_instructors(): void

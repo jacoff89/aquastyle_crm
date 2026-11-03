@@ -2,16 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\EventStatus;
+use App\Actions\ListInstructorSchedule;
 use App\Enums\Role;
+use App\Enums\ScheduleRange;
 use App\Http\Requests\Instructors\StoreInstructorRequest;
 use App\Http\Requests\Instructors\UpdateInstructorRequest;
-use App\Models\Event;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -65,9 +64,11 @@ class InstructorController extends Controller
         return redirect()->route('instructors.show', $instructor)->with('status', "Добавлен инструктор: {$instructor->name}.");
     }
 
-    public function show(User $instructor): Response
+    public function show(Request $request, User $instructor, ListInstructorSchedule $schedule): Response
     {
         Gate::authorize('view', $instructor);
+
+        $range = $request->user()->preferredScheduleRange();
 
         return Inertia::render('instructors/Show', [
             'instructor' => [
@@ -80,7 +81,9 @@ class InstructorController extends Controller
                 'notes' => $instructor->notes,
                 'isActive' => $instructor->is_active,
             ],
-            'schedule' => $this->schedule($instructor),
+            'schedule' => $schedule->handle($instructor, $range),
+            'scheduleRange' => $range->value,
+            'scheduleRanges' => ScheduleRange::options(),
         ]);
     }
 
@@ -114,35 +117,5 @@ class InstructorController extends Controller
         $instructor->save();
 
         return redirect()->route('instructors.show', $instructor)->with('status', "Изменения сохранены: {$instructor->name}.");
-    }
-
-    /**
-     * The instructor's events from today for the next two weeks, cancelled ones included.
-     *
-     * @return list<array{id: int, title: string, date: string, dateLabel: string, time: string, role: string, location: ?string, status: string, statusLabel: string, isCancelled: bool}>
-     */
-    private function schedule(User $instructor): array
-    {
-        $from = Carbon::today();
-
-        return Event::query()
-            ->with(['type', 'instructors' => fn ($query) => $query->whereKey($instructor->id)])
-            ->withInstructor($instructor)
-            ->overlapping($from, $from->copy()->addDays(14))
-            ->orderBy('starts_at')
-            ->get()
-            ->map(fn (Event $event): array => [
-                'id' => $event->id,
-                'title' => $event->displayTitle(),
-                'date' => $event->starts_at->format('Y-m-d'),
-                'dateLabel' => $event->starts_at->translatedFormat('D, j F'),
-                'time' => $event->starts_at->format('H:i').'–'.$event->ends_at->format('H:i'),
-                'role' => $event->instructors->first()?->pivot->role->label() ?? '',
-                'location' => $event->location,
-                'status' => $event->status->value,
-                'statusLabel' => $event->status->label(),
-                'isCancelled' => $event->status === EventStatus::Cancelled,
-            ])
-            ->all();
     }
 }
