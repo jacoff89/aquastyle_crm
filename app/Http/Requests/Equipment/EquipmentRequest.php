@@ -5,6 +5,7 @@ namespace App\Http\Requests\Equipment;
 use App\Enums\EquipmentStatus;
 use App\Enums\Role;
 use App\Models\Equipment;
+use App\Models\EquipmentCategory;
 use App\Models\Location;
 use App\Models\User;
 use Illuminate\Database\Query\Builder;
@@ -26,6 +27,7 @@ abstract class EquipmentRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:150'],
+            'category_id' => ['nullable', 'integer', Rule::exists(EquipmentCategory::class, 'id')],
             'inventory_number' => ['nullable', 'string', 'max:50', Rule::unique(Equipment::class)->ignore($this->editedEquipment())],
             'size' => ['nullable', 'string', 'max:30'],
             'status' => ['required', Rule::enum(EquipmentStatus::class)],
@@ -55,6 +57,7 @@ abstract class EquipmentRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'category_id.exists' => 'Категория не найдена.',
             'inventory_number.unique' => 'Снаряжение с таким инвентарным номером уже есть.',
             'location_id.exists' => 'Локация не найдена или скрыта.',
             'instructor_id.exists' => 'Инструктор не найден или отключён.',
@@ -67,6 +70,7 @@ abstract class EquipmentRequest extends FormRequest
             'name' => trim((string) $this->input('name')),
             'inventory_number' => $this->trimmedOrNull('inventory_number'),
             'size' => $this->trimmedOrNull('size'),
+            'category_id' => $this->filled('category_id') ? $this->input('category_id') : null,
             'location_id' => $this->filled('location_id') ? $this->input('location_id') : null,
             'instructor_id' => $this->filled('instructor_id') ? $this->input('instructor_id') : null,
         ]);

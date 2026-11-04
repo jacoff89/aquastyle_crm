@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Enums\EquipmentStatus;
 use App\Models\Equipment;
+use App\Models\EquipmentCategory;
 use App\Models\Location;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -23,12 +24,23 @@ class EquipmentFactory extends Factory
         return [
             'name' => fake()->randomElement(['Регулятор', 'Компенсатор плавучести', 'Гидрокостюм', 'Баллон 12 л', 'Маска', 'Ласты']),
             'inventory_number' => fake()->unique()->numerify('INV-#####'),
+            'category_id' => null,
             'size' => fake()->optional()->randomElement(['S', 'M', 'L', 'XL']),
             'status' => EquipmentStatus::InUse,
             'location_id' => null,
             'instructor_id' => null,
             'notes' => null,
         ];
+    }
+
+    /**
+     * Put the item in the given category.
+     */
+    public function inCategory(EquipmentCategory $category): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'category_id' => $category->id,
+        ]);
     }
 
     /**

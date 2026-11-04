@@ -38,6 +38,8 @@ class EquipmentControllerTest extends TestCase
                 ->where('equipment.1', [
                     'id' => $regulator->id,
                     'name' => 'Регулятор',
+                    'categoryId' => null,
+                    'categoryName' => null,
                     'inventoryNumber' => 'R-001',
                     'size' => null,
                     'status' => 'repair',

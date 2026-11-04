@@ -8,6 +8,7 @@ use App\Enums\EventStatus;
 use App\Enums\Role;
 use App\Models\Client;
 use App\Models\Equipment;
+use App\Models\EquipmentCategory;
 use App\Models\Event;
 use App\Models\EventClient;
 use App\Models\EventType;
@@ -84,15 +85,16 @@ class DatabaseSeeder extends Seeder
 
     /**
      * Demo equipment. `location` is a key of LOCATIONS, `instructor` the start of an e-mail.
+     * Items without `category` show that a category is optional.
      *
-     * @var list<array{name: string, number: string, size?: string, status: EquipmentStatus, location: ?string, instructor?: string}>
+     * @var list<array{name: string, category?: string, number: string, size?: string, status: EquipmentStatus, location: ?string, instructor?: string}>
      */
     private const EQUIPMENT = [
-        ['name' => 'Регулятор Apeks XTX50', 'number' => 'R-001', 'status' => EquipmentStatus::InUse, 'location' => 'Бассейн «Дельфин»', 'instructor' => 'anna'],
-        ['name' => 'Регулятор Apeks XTX50', 'number' => 'R-002', 'status' => EquipmentStatus::Repair, 'location' => 'Бассейн «Дельфин»'],
-        ['name' => 'Компенсатор плавучести', 'number' => 'B-001', 'size' => 'M', 'status' => EquipmentStatus::InUse, 'location' => 'Бассейн «Дельфин»', 'instructor' => 'boris'],
-        ['name' => 'Компенсатор плавучести', 'number' => 'B-002', 'size' => 'L', 'status' => EquipmentStatus::InUse, 'location' => 'Озеро Увильды'],
-        ['name' => 'Гидрокостюм 7 мм', 'number' => 'W-001', 'size' => 'M', 'status' => EquipmentStatus::InUse, 'location' => 'Озеро Увильды', 'instructor' => 'admin-instructor'],
+        ['name' => 'Регулятор Apeks XTX50', 'category' => 'Регуляторы', 'number' => 'R-001', 'status' => EquipmentStatus::InUse, 'location' => 'Бассейн «Дельфин»', 'instructor' => 'anna'],
+        ['name' => 'Регулятор Apeks XTX50', 'category' => 'Регуляторы', 'number' => 'R-002', 'status' => EquipmentStatus::Repair, 'location' => 'Бассейн «Дельфин»'],
+        ['name' => 'Компенсатор плавучести', 'category' => 'Компенсаторы', 'number' => 'B-001', 'size' => 'M', 'status' => EquipmentStatus::InUse, 'location' => 'Бассейн «Дельфин»', 'instructor' => 'boris'],
+        ['name' => 'Компенсатор плавучести', 'category' => 'Компенсаторы', 'number' => 'B-002', 'size' => 'L', 'status' => EquipmentStatus::InUse, 'location' => 'Озеро Увильды'],
+        ['name' => 'Гидрокостюм 7 мм', 'category' => 'Гидрокостюмы', 'number' => 'W-001', 'size' => 'M', 'status' => EquipmentStatus::InUse, 'location' => 'Озеро Увильды', 'instructor' => 'admin-instructor'],
         ['name' => 'Баллон 12 л', 'number' => 'T-001', 'status' => EquipmentStatus::WrittenOff, 'location' => null],
         ['name' => 'Компьютер Suunto Zoop', 'number' => 'C-001', 'status' => EquipmentStatus::InUse, 'location' => 'Учебный класс', 'instructor' => 'instructor'],
     ];
@@ -161,6 +163,7 @@ class DatabaseSeeder extends Seeder
         foreach (self::EQUIPMENT as $demo) {
             Equipment::firstOrCreate(['inventory_number' => $demo['number']], [
                 'name' => $demo['name'],
+                'category_id' => isset($demo['category']) ? EquipmentCategory::firstOrCreate(['name' => $demo['category']])->id : null,
                 'size' => $demo['size'] ?? null,
                 'status' => $demo['status'],
                 'location_id' => $demo['location'] === null ? null : $locations[$demo['location']]->id,

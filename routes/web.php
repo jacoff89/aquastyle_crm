@@ -9,6 +9,7 @@ use App\Http\Controllers\ClientCommunicationController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ClientDuplicateController;
 use App\Http\Controllers\ClientSearchController;
+use App\Http\Controllers\EquipmentCategoryController;
 use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\EventClientController;
 use App\Http\Controllers\EventController;
@@ -71,6 +72,8 @@ Route::middleware('auth')->group(function () {
     Route::patch('locations/{location}', [LocationController::class, 'update'])->name('locations.update');
 
     Route::resource('equipment', EquipmentController::class)->except(['show', 'destroy']);
+    Route::post('equipment-categories', [EquipmentCategoryController::class, 'store'])->name('equipment-categories.store');
+    Route::patch('equipment-categories/{category}', [EquipmentCategoryController::class, 'update'])->name('equipment-categories.update');
 
     Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('event-types', [EventTypeController::class, 'index'])->name('event-types.index');

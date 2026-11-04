@@ -10,11 +10,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * An item in the equipment registry: a regulator, a BCD, a wetsuit and so on.
+ * An item in the equipment registry: a regulator, a BCD, a wetsuit and so on. It may belong to a category.
  * It is kept at a location and may be assigned to an instructor who is responsible for it.
  * Items are written off rather than deleted, so the registry keeps their history.
  */
-#[Fillable(['name', 'inventory_number', 'size', 'status', 'location_id', 'instructor_id', 'notes'])]
+#[Fillable(['name', 'category_id', 'inventory_number', 'size', 'status', 'location_id', 'instructor_id', 'notes'])]
 class Equipment extends Model
 {
     /** @use HasFactory<EquipmentFactory> */
@@ -37,6 +37,16 @@ class Equipment extends Model
         return [
             'status' => EquipmentStatus::class,
         ];
+    }
+
+    /**
+     * The category of the item, if it has one.
+     *
+     * @return BelongsTo<EquipmentCategory, $this>
+     */
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(EquipmentCategory::class, 'category_id');
     }
 
     /**

@@ -11,6 +11,8 @@ import AppLayout from '../../layouts/AppLayout.vue';
 const props = defineProps({
     /** Снаряжение для правки или null для нового. */
     item: { type: Object, default: null },
+    /** Категории: { id, name }. */
+    categories: { type: Array, required: true },
     /** Все локации: { id, name, isActive }. */
     locations: { type: Array, required: true },
     /** Все инструкторы: { id, name, isActive }. */
@@ -22,6 +24,7 @@ const isEditing = computed(() => props.item !== null);
 
 const form = useForm({
     name: props.item?.name ?? '',
+    category_id: props.item?.categoryId ?? '',
     inventory_number: props.item?.inventoryNumber ?? '',
     size: props.item?.size ?? '',
     status: props.item?.status ?? 'in_use',
@@ -52,9 +55,23 @@ const submit = () => {
             <section class="space-y-5 rounded-lg border border-line bg-white p-6" aria-labelledby="equipment-heading">
                 <h2 id="equipment-heading" class="text-lg font-semibold">Снаряжение</h2>
 
-                <FormField id="name" label="Название" hint="Например, «Регулятор Apeks XTX50»." :error="form.errors.name">
-                    <TextInput id="name" v-model="form.name" autocomplete="off" required :invalid="Boolean(form.errors.name)" />
-                </FormField>
+                <div class="grid gap-5 sm:grid-cols-[2fr_1fr]">
+                    <FormField id="name" label="Название" hint="Например, «Регулятор Apeks XTX50»." :error="form.errors.name">
+                        <TextInput id="name" v-model="form.name" autocomplete="off" required :invalid="Boolean(form.errors.name)" />
+                    </FormField>
+
+                    <FormField
+                        id="category_id"
+                        label="Категория"
+                        :hint="categories.length ? '' : 'Категории добавляются на странице реестра.'"
+                        :error="form.errors.category_id"
+                    >
+                        <SelectInput id="category_id" v-model="form.category_id" :invalid="Boolean(form.errors.category_id)">
+                            <option value="">Без категории</option>
+                            <option v-for="category in categories" :key="category.id" :value="category.id">{{ category.name }}</option>
+                        </SelectInput>
+                    </FormField>
+                </div>
 
                 <div class="grid gap-5 sm:grid-cols-3">
                     <FormField id="inventory_number" label="Инвентарный номер" :error="form.errors.inventory_number">
