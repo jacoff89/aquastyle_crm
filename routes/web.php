@@ -9,9 +9,11 @@ use App\Http\Controllers\ClientCommunicationController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ClientDuplicateController;
 use App\Http\Controllers\ClientSearchController;
+use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\EventClientController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\InstructorController;
+use App\Http\Controllers\LocationController;
 use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ScheduleRangeController;
@@ -63,6 +65,12 @@ Route::middleware('auth')->group(function () {
 
     Route::patch('schedule-range', [ScheduleRangeController::class, 'update'])->name('schedule-range.update');
     Route::resource('instructors', InstructorController::class)->except(['destroy']);
+
+    Route::get('locations', [LocationController::class, 'index'])->name('locations.index');
+    Route::post('locations', [LocationController::class, 'store'])->name('locations.store');
+    Route::patch('locations/{location}', [LocationController::class, 'update'])->name('locations.update');
+
+    Route::resource('equipment', EquipmentController::class)->except(['show', 'destroy']);
 
     Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('event-types', [EventTypeController::class, 'index'])->name('event-types.index');

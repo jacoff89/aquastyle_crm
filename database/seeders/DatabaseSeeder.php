@@ -3,12 +3,15 @@
 namespace Database\Seeders;
 
 use App\Enums\AttendanceStatus;
+use App\Enums\EquipmentStatus;
 use App\Enums\EventStatus;
 use App\Enums\Role;
 use App\Models\Client;
+use App\Models\Equipment;
 use App\Models\Event;
 use App\Models\EventClient;
 use App\Models\EventType;
+use App\Models\Location;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -69,6 +72,32 @@ class DatabaseSeeder extends Seeder
     ];
 
     /**
+     * Demo locations, by name. The events above are held at them.
+     *
+     * @var array<string, ?string>
+     */
+    private const LOCATIONS = [
+        'Бассейн «Дельфин»' => 'ул. Гагарина, 12',
+        'Учебный класс' => 'ул. Ленина, 5, офис 3',
+        'Озеро Увильды' => null,
+    ];
+
+    /**
+     * Demo equipment. `location` is a key of LOCATIONS, `instructor` the start of an e-mail.
+     *
+     * @var list<array{name: string, number: string, size?: string, status: EquipmentStatus, location: ?string, instructor?: string}>
+     */
+    private const EQUIPMENT = [
+        ['name' => 'Регулятор Apeks XTX50', 'number' => 'R-001', 'status' => EquipmentStatus::InUse, 'location' => 'Бассейн «Дельфин»', 'instructor' => 'anna'],
+        ['name' => 'Регулятор Apeks XTX50', 'number' => 'R-002', 'status' => EquipmentStatus::Repair, 'location' => 'Бассейн «Дельфин»'],
+        ['name' => 'Компенсатор плавучести', 'number' => 'B-001', 'size' => 'M', 'status' => EquipmentStatus::InUse, 'location' => 'Бассейн «Дельфин»', 'instructor' => 'boris'],
+        ['name' => 'Компенсатор плавучести', 'number' => 'B-002', 'size' => 'L', 'status' => EquipmentStatus::InUse, 'location' => 'Озеро Увильды'],
+        ['name' => 'Гидрокостюм 7 мм', 'number' => 'W-001', 'size' => 'M', 'status' => EquipmentStatus::InUse, 'location' => 'Озеро Увильды', 'instructor' => 'admin-instructor'],
+        ['name' => 'Баллон 12 л', 'number' => 'T-001', 'status' => EquipmentStatus::WrittenOff, 'location' => null],
+        ['name' => 'Компьютер Suunto Zoop', 'number' => 'C-001', 'status' => EquipmentStatus::InUse, 'location' => 'Учебный класс', 'instructor' => 'instructor'],
+    ];
+
+    /**
      * Seed the application's database.
      */
     public function run(): void
@@ -88,6 +117,7 @@ class DatabaseSeeder extends Seeder
         $instructors = $this->seedInstructors($admin);
         $clients = $this->seedClients($admin);
         $this->seedEvents($admin, $instructors, $clients);
+        $this->seedEquipment($instructors, $this->seedLocations());
 
         $this->command?->info('Демо-аккаунты, пароль у всех — password: admin@example.com, '.implode(', ', array_keys(self::INSTRUCTORS)).'.');
     }
@@ -110,6 +140,33 @@ class DatabaseSeeder extends Seeder
 
             return [strstr($email, '@', true) => $instructor];
         });
+    }
+
+    /**
+     * @return Collection<string, Location> The locations by name.
+     */
+    private function seedLocations(): Collection
+    {
+        return collect(self::LOCATIONS)->mapWithKeys(fn (?string $address, string $name): array => [
+            $name => Location::firstOrCreate(['name' => $name], ['address' => $address]),
+        ]);
+    }
+
+    /**
+     * @param  Collection<string, User>  $instructors
+     * @param  Collection<string, Location>  $locations
+     */
+    private function seedEquipment(Collection $instructors, Collection $locations): void
+    {
+        foreach (self::EQUIPMENT as $demo) {
+            Equipment::firstOrCreate(['inventory_number' => $demo['number']], [
+                'name' => $demo['name'],
+                'size' => $demo['size'] ?? null,
+                'status' => $demo['status'],
+                'location_id' => $demo['location'] === null ? null : $locations[$demo['location']]->id,
+                'instructor_id' => isset($demo['instructor']) ? $instructors[$demo['instructor']]->id : null,
+            ]);
+        }
     }
 
     /**

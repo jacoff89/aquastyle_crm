@@ -25,7 +25,9 @@ class HandleInertiaRequestsTest extends TestCase
                 ->where('can.manageUsers', true)
                 ->where('can.manageInstructors', true)
                 ->where('can.manageEventTypes', true)
-                ->where('can.manageExercises', true));
+                ->where('can.manageExercises', true)
+                ->where('can.manageLocations', true)
+                ->where('can.manageEquipment', true));
     }
 
     public function test_administrator_who_teaches_has_both_roles_in_the_menu(): void
@@ -47,6 +49,8 @@ class HandleInertiaRequestsTest extends TestCase
                 ->where('can.manageUsers', false)
                 ->where('can.manageInstructors', false)
                 ->where('can.manageEventTypes', false)
-                ->where('can.manageExercises', false));
+                ->where('can.manageExercises', false)
+                ->where('can.manageLocations', false)
+                ->where('can.manageEquipment', false));
     }
 }

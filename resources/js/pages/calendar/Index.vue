@@ -15,6 +15,8 @@ const props = defineProps({
     initialFilters: { type: Object, required: true },
     instructors: { type: Array, required: true },
     eventTypes: { type: Array, required: true },
+    /** Активные локации для подсказок в поле «Место»: { name, address }. */
+    locations: { type: Array, required: true },
     statuses: { type: Array, required: true },
     attendanceStatuses: { type: Array, required: true },
     canCreate: { type: Boolean, required: true },
@@ -704,6 +706,7 @@ const isEmptyPeriod = computed(() => loaded.value && !loading.value && events.va
             :can-copy="canCreate"
             :instructors="instructors"
             :event-types="eventTypes"
+            :locations="locations"
             :statuses="statuses"
             :attendance-statuses="attendanceStatuses"
             :request="request"

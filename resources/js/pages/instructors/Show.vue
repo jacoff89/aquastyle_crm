@@ -51,6 +51,19 @@ defineProps({
                             {{ instructor.color }}
                         </dd>
                     </div>
+                    <div>
+                        <dt class="text-muted">Снаряжение</dt>
+                        <dd class="mt-0.5 text-ink">
+                            <Link
+                                v-if="instructor.equipmentCount"
+                                :href="`/equipment?instructor=${instructor.id}`"
+                                class="text-sea-700 underline-offset-4 hover:underline"
+                            >
+                                Закреплено: {{ instructor.equipmentCount }}
+                            </Link>
+                            <span v-else>—</span>
+                        </dd>
+                    </div>
                     <div v-if="instructor.notes" class="sm:col-span-2">
                         <dt class="text-muted">Заметки</dt>
                         <dd class="mt-0.5 whitespace-pre-line text-ink">{{ instructor.notes }}</dd>

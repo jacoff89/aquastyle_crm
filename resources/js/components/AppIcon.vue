@@ -30,6 +30,14 @@ defineProps({
             <path d="M5 20c.9-3.6 3.6-5.5 7-5.5s6.1 1.9 7 5.5" />
             <path d="m12 14.5 1.4 2.5L12 20l-1.4-3Z" />
         </template>
+        <template v-else-if="name === 'locations'">
+            <path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z" />
+            <circle cx="12" cy="10" r="2.5" />
+        </template>
+        <template v-else-if="name === 'equipment'">
+            <rect x="8" y="6" width="8" height="15" rx="4" />
+            <path d="M10 6V4h4v2M14 3.5h3" />
+        </template>
         <template v-else-if="name === 'types'">
             <path d="M4 6h16M4 12h16M4 18h10" />
         </template>

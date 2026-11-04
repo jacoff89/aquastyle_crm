@@ -80,6 +80,7 @@ class InstructorController extends Controller
                 'color' => $instructor->color,
                 'notes' => $instructor->notes,
                 'isActive' => $instructor->is_active,
+                'equipmentCount' => $instructor->equipment()->count(),
             ],
             'schedule' => $schedule->handle($instructor, $range),
             'scheduleRange' => $range->value,

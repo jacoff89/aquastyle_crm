@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\AsEnumCollection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -58,6 +59,16 @@ class User extends Authenticatable
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * The equipment assigned to the user as an instructor.
+     *
+     * @return HasMany<Equipment, $this>
+     */
+    public function equipment(): HasMany
+    {
+        return $this->hasMany(Equipment::class, 'instructor_id');
     }
 
     /**

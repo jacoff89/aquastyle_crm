@@ -6,6 +6,7 @@ use App\Enums\AttendanceStatus;
 use App\Enums\EventStatus;
 use App\Models\Event;
 use App\Models\EventType;
+use App\Models\Location;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -55,6 +56,14 @@ class CalendarController extends Controller
                 'shortName' => $eventType->name,
                 'isActive' => $eventType->is_active,
             ]),
+            'locations' => Location::query()
+                ->active()
+                ->orderBy('name')
+                ->get(['name', 'address'])
+                ->map(fn (Location $location): array => [
+                    'name' => $location->name,
+                    'address' => $location->address,
+                ]),
             'statuses' => collect(EventStatus::cases())->map(fn (EventStatus $status): array => [
                 'value' => $status->value,
                 'label' => $status->label(),

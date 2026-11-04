@@ -20,6 +20,8 @@ const props = defineProps({
     canCopy: { type: Boolean, default: false },
     instructors: { type: Array, required: true },
     eventTypes: { type: Array, required: true },
+    /** Локации, которые предлагаются в поле «Место»: { name, address }. Место можно вписать и своё. */
+    locations: { type: Array, default: () => [] },
     statuses: { type: Array, required: true },
     attendanceStatuses: { type: Array, required: true },
     /** Запрос к серверу страницы календаря: отвечает { status, data }, ответы 4xx — обычный результат. */
@@ -328,8 +330,24 @@ onMounted(() => {
                     </fieldset>
 
                     <div class="grid gap-5 sm:grid-cols-[1fr_8rem]">
-                        <FormField id="location" label="Место" :error="form.errors.location">
-                            <TextInput id="location" v-model="form.location" autocomplete="off" :invalid="Boolean(form.errors.location)" />
+                        <FormField
+                            id="location"
+                            label="Место"
+                            :hint="locations.length ? 'Выберите локацию из списка или впишите своё место.' : ''"
+                            :error="form.errors.location"
+                        >
+                            <TextInput
+                                id="location"
+                                v-model="form.location"
+                                autocomplete="off"
+                                :list="locations.length ? 'event-locations' : undefined"
+                                :invalid="Boolean(form.errors.location)"
+                            />
+                            <datalist v-if="locations.length" id="event-locations">
+                                <option v-for="location in locations" :key="location.name" :value="location.name">
+                                    {{ location.address ?? '' }}
+                                </option>
+                            </datalist>
                         </FormField>
 
                         <FormField id="capacity" label="Мест" :error="form.errors.capacity">
