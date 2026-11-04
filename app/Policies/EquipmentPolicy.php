@@ -6,13 +6,13 @@ use App\Models\Equipment;
 use App\Models\User;
 
 /**
- * Only administrators maintain the equipment registry.
+ * Administrators and instructors both see the equipment registry; only administrators maintain it.
  */
 class EquipmentPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->isAdmin();
+        return true;
     }
 
     public function create(User $user): bool

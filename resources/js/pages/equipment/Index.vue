@@ -22,8 +22,13 @@ const props = defineProps({
 
 const NONE = 'none';
 
+const page = usePage();
+
+/** Инструктор видит реестр, но добавлять и менять снаряжение и категории может только администратор. */
+const canManage = computed(() => page.props.can.manageEquipment);
+
 /** Фильтр можно открыть ссылкой: /equipment?location=3, /equipment?instructor=5, /equipment?category=2. */
-const query = new URLSearchParams(usePage().url.split('?')[1] ?? '');
+const query = new URLSearchParams(page.url.split('?')[1] ?? '');
 const fromQuery = (key, options) => {
     const value = query.get(key);
 
@@ -138,7 +143,7 @@ const cancelRenamingOnEscape = (event) => {
 
 <template>
     <AppLayout title="Реестр снаряжения">
-        <template #actions>
+        <template v-if="canManage" #actions>
             <div class="flex flex-wrap gap-2">
                 <button
                     type="button"
@@ -159,6 +164,7 @@ const cancelRenamingOnEscape = (event) => {
         </template>
 
         <dialog
+            v-if="canManage"
             ref="categoryDialog"
             class="m-auto w-full max-w-md rounded-lg bg-white p-0 text-ink shadow-xl backdrop:bg-depth-950/50"
             aria-labelledby="category-dialog-title"
@@ -248,7 +254,7 @@ const cancelRenamingOnEscape = (event) => {
 
         <div v-if="equipment.length === 0" class="mt-6 rounded-lg border border-dashed border-line bg-white px-6 py-12 text-center">
             <p class="text-base font-medium text-ink">Реестр пока пуст</p>
-            <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-muted">Добавьте первое снаряжение, чтобы вести его учёт.</p>
+            <p v-if="canManage" class="mx-auto mt-2 max-w-md text-sm leading-6 text-muted">Добавьте первое снаряжение, чтобы вести его учёт.</p>
         </div>
 
         <template v-else>
@@ -313,12 +319,14 @@ const cancelRenamingOnEscape = (event) => {
                         <tr v-for="item in visibleEquipment" :key="item.id" class="flex flex-col gap-1 px-4 py-3 sm:table-row sm:p-0">
                             <td class="sm:px-4 sm:py-3">
                                 <Link
+                                    v-if="canManage"
                                     :href="`/equipment/${item.id}/edit`"
                                     class="font-medium underline-offset-4 hover:text-sea-700 hover:underline"
                                     :class="item.status === 'written_off' ? 'text-muted' : 'text-ink'"
                                 >
                                     {{ item.name }}
                                 </Link>
+                                <span v-else class="font-medium" :class="item.status === 'written_off' ? 'text-muted' : 'text-ink'">{{ item.name }}</span>
                                 <div class="text-xs text-muted">
                                     {{
                                         [item.categoryName, item.inventoryNumber && `№ ${item.inventoryNumber}`, item.size && `размер ${item.size}`]

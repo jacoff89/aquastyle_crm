@@ -27,6 +27,7 @@ class HandleInertiaRequestsTest extends TestCase
                 ->where('can.manageEventTypes', true)
                 ->where('can.manageExercises', true)
                 ->where('can.manageLocations', true)
+                ->where('can.viewEquipment', true)
                 ->where('can.manageEquipment', true));
     }
 
@@ -51,6 +52,7 @@ class HandleInertiaRequestsTest extends TestCase
                 ->where('can.manageEventTypes', false)
                 ->where('can.manageExercises', false)
                 ->where('can.manageLocations', false)
+                ->where('can.viewEquipment', true)
                 ->where('can.manageEquipment', false));
     }
 }

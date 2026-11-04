@@ -61,7 +61,8 @@ class HandleInertiaRequests extends Middleware
                 'manageEventTypes' => $user?->can('viewAny', EventType::class) ?? false,
                 'manageExercises' => $user?->can('viewAny', Exercise::class) ?? false,
                 'manageLocations' => $user?->can('viewAny', Location::class) ?? false,
-                'manageEquipment' => $user?->can('viewAny', Equipment::class) ?? false,
+                'viewEquipment' => $user?->can('viewAny', Equipment::class) ?? false,
+                'manageEquipment' => $user?->can('create', Equipment::class) ?? false,
             ],
             'flash' => [
                 'status' => fn () => $request->session()->get('status'),

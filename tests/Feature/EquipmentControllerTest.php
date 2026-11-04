@@ -206,12 +206,26 @@ class EquipmentControllerTest extends TestCase
                 ->where('item.notes', 'Обслужен'));
     }
 
-    public function test_instructor_can_not_open_add_or_change_equipment(): void
+    public function test_instructor_sees_the_registry_without_the_right_to_manage_it(): void
+    {
+        Equipment::factory()->create(['name' => 'Регулятор']);
+
+        $this->actingAs(User::factory()->create())
+            ->get('/equipment')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('equipment/Index')
+                ->has('equipment', 1)
+                ->where('equipment.0.name', 'Регулятор')
+                ->where('can.viewEquipment', true)
+                ->where('can.manageEquipment', false));
+    }
+
+    public function test_instructor_can_not_add_or_change_equipment(): void
     {
         $item = Equipment::factory()->create(['name' => 'Регулятор']);
         $instructor = User::factory()->create();
 
-        $this->actingAs($instructor)->get('/equipment')->assertForbidden();
         $this->actingAs($instructor)->get('/equipment/create')->assertForbidden();
         $this->actingAs($instructor)->get("/equipment/{$item->id}/edit")->assertForbidden();
         $this->actingAs($instructor)->post('/equipment', ['name' => 'Ласты', 'status' => 'in_use'])->assertForbidden();

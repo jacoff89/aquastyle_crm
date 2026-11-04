@@ -20,11 +20,11 @@ class EquipmentPolicyTest extends TestCase
         $this->assertTrue($admin->can('update', Equipment::factory()->create()));
     }
 
-    public function test_instructor_can_not_list_create_or_update_equipment(): void
+    public function test_instructor_can_list_but_not_create_or_update_equipment(): void
     {
         $instructor = User::factory()->create();
 
-        $this->assertFalse($instructor->can('viewAny', Equipment::class));
+        $this->assertTrue($instructor->can('viewAny', Equipment::class));
         $this->assertFalse($instructor->can('create', Equipment::class));
         $this->assertFalse($instructor->can('update', Equipment::factory()->create()));
     }

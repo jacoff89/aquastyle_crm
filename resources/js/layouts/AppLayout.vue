@@ -25,7 +25,7 @@ const sections = computed(() =>
         { label: 'Клиенты', href: '/clients', icon: 'clients' },
         page.props.can.manageInstructors && { label: 'Инструкторы', href: '/instructors', icon: 'instructors' },
         page.props.can.manageLocations && { label: 'Локации', href: '/locations', icon: 'locations' },
-        page.props.can.manageEquipment && { label: 'Снаряжение', href: '/equipment', icon: 'equipment' },
+        page.props.can.viewEquipment && { label: 'Снаряжение', href: '/equipment', icon: 'equipment' },
     ].filter(Boolean),
 );
 
