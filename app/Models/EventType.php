@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -86,6 +87,17 @@ class EventType extends Model
     public function children(): HasMany
     {
         return $this->hasMany(self::class, 'parent_id');
+    }
+
+    /**
+     * The exercises attached to this type. Events of a child type are also offered
+     * the exercises of its parent; see Exercise::forEventType().
+     *
+     * @return BelongsToMany<Exercise, $this>
+     */
+    public function exercises(): BelongsToMany
+    {
+        return $this->belongsToMany(Exercise::class);
     }
 
     /**

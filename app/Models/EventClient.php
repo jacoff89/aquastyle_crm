@@ -87,11 +87,13 @@ class EventClient extends Pivot
 
     /**
      * Fills `exerciseIdsDoneElsewhere` of every booking with the exercises attached to the
-     * same client on their other events, in one query.
+     * same client on their other events, in one query. Only the given exercises are counted:
+     * the ones offered for the event, so that the window marks nothing it does not offer.
      *
      * @param  Collection<int, EventClient>  $bookings
+     * @param  list<int>  $exerciseIds
      */
-    public static function loadExercisesDoneElsewhere(Collection $bookings): void
+    public static function loadExercisesDoneElsewhere(Collection $bookings, array $exerciseIds): void
     {
         if ($bookings->isEmpty()) {
             return;
@@ -100,6 +102,7 @@ class EventClient extends Pivot
         $attached = DB::table('event_client_exercise')
             ->join('event_client', 'event_client.id', '=', 'event_client_exercise.event_client_id')
             ->whereIn('event_client.client_id', $bookings->pluck('client_id')->unique())
+            ->whereIn('event_client_exercise.exercise_id', $exerciseIds)
             ->select('event_client.id as booking_id', 'event_client.client_id', 'event_client_exercise.exercise_id')
             ->get();
 

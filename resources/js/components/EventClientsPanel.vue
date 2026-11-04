@@ -410,7 +410,7 @@ onBeforeUnmount(() => {
                         <form v-if="exercisesEditing === row.clientId" class="mt-2 space-y-2" @submit.prevent="saveExercises(row)">
                             <fieldset>
                                 <legend class="sr-only">Упражнения: {{ row.name }}</legend>
-                                <p v-if="!exerciseOptions(row).length" class="text-sm text-muted">Упражнений пока нет. Их добавляет администратор в настройках.</p>
+                                <p v-if="!exerciseOptions(row).length" class="text-sm text-muted">Для этого типа занятий упражнений нет. Их привязывает к типам администратор в настройках.</p>
                                 <template v-for="(exercise, index) in exerciseOptions(row)" :key="exercise.id">
                                     <div
                                         v-if="isDoneElsewhere(row, exercise) && (index === 0 || !isDoneElsewhere(row, exerciseOptions(row)[index - 1]))"

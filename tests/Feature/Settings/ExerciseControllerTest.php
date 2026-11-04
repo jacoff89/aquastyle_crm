@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Settings;
 
+use App\Models\EventType;
 use App\Models\Exercise;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -23,8 +24,69 @@ class ExerciseControllerTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('settings/exercises/Index')
                 ->has('exercises', 2)
-                ->where('exercises.0', ['id' => $hidden->id, 'name' => 'Буксировка', 'isActive' => false])
+                ->where('exercises.0', ['id' => $hidden->id, 'name' => 'Буксировка', 'isActive' => false, 'eventTypeIds' => []])
                 ->where('exercises.1.name', 'Всплытие'));
+    }
+
+    public function test_admin_sees_event_types_of_each_exercise_and_every_type_in_tree_order(): void
+    {
+        $pool = EventType::factory()->create(['name' => 'Глубокий бассейн']);
+        $theory = EventType::factory()->hidden()->create(['name' => 'Лекция']);
+        $beginners = EventType::factory()->create(['parent_id' => $pool->id, 'name' => 'Начальный']);
+        Exercise::factory()->offeredFor($beginners, $theory)->create();
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->get('/settings/exercises')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('exercises.0.eventTypeIds', fn ($ids) => collect($ids)->sort()->values()->all() === collect([$beginners->id, $theory->id])->sort()->values()->all())
+                ->where('eventTypes', fn ($types) => collect($types)->whereIn('id', [$pool->id, $beginners->id, $theory->id])->values()->all() === [
+                    ['id' => $pool->id, 'parentId' => null, 'name' => 'Глубокий бассейн', 'isActive' => true],
+                    ['id' => $beginners->id, 'parentId' => $pool->id, 'name' => 'Начальный', 'isActive' => true],
+                    ['id' => $theory->id, 'parentId' => null, 'name' => 'Лекция', 'isActive' => false],
+                ]));
+    }
+
+    public function test_admin_replaces_and_clears_event_types_of_exercise(): void
+    {
+        $pool = EventType::factory()->create();
+        $beginners = EventType::factory()->create(['parent_id' => $pool->id]);
+        $theory = EventType::factory()->create();
+        $exercise = Exercise::factory()->offeredFor($theory)->create(['name' => 'Всплытие']);
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)
+            ->patch("/settings/exercises/{$exercise->id}", ['event_type_ids' => [$pool->id, $beginners->id]])
+            ->assertSessionHas('status', 'Типы занятий для «Всплытие» сохранены.');
+        $this->assertEqualsCanonicalizing([$pool->id, $beginners->id], $exercise->eventTypes()->pluck('event_types.id')->all());
+
+        $this->actingAs($admin)->patch("/settings/exercises/{$exercise->id}", ['event_type_ids' => []])->assertSessionHasNoErrors();
+        $this->assertSame(0, $exercise->eventTypes()->count());
+    }
+
+    public function test_renaming_exercise_keeps_its_event_types(): void
+    {
+        $type = EventType::factory()->create();
+        $exercise = Exercise::factory()->offeredFor($type)->create();
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->patch("/settings/exercises/{$exercise->id}", ['name' => 'Новое'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame([$type->id], $exercise->eventTypes()->pluck('event_types.id')->all());
+    }
+
+    public function test_unknown_and_repeated_event_types_are_refused(): void
+    {
+        $type = EventType::factory()->create();
+        $exercise = Exercise::factory()->create();
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)->patch("/settings/exercises/{$exercise->id}", ['event_type_ids' => [999]])->assertSessionHasErrors('event_type_ids.0');
+        $this->actingAs($admin)->patch("/settings/exercises/{$exercise->id}", ['event_type_ids' => [$type->id, $type->id]])->assertSessionHasErrors();
+        $this->actingAs(User::factory()->create())->patch("/settings/exercises/{$exercise->id}", ['event_type_ids' => [$type->id]])->assertForbidden();
+
+        $this->assertSame(0, $exercise->eventTypes()->count());
     }
 
     public function test_instructor_can_not_open_add_or_change_exercises(): void

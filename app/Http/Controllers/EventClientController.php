@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Gate;
 /**
  * The clients of one event, as the event window shows them: who is booked, who came.
  * Every answer is the whole list with the places taken, so the window needs no second request.
+ * The exercises offered are the active ones of the event's type (or of its parent).
  *
  * Booking a client and changing a booking are open to both roles. Recording who came
  * (or did not) is limited to administrators and the event's own instructors.
@@ -62,7 +63,9 @@ class EventClientController extends Controller
             ->orderBy('event_client.id')
             ->get();
 
-        EventClient::loadExercisesDoneElsewhere($bookings);
+        $offeredExercises = Exercise::query()->active()->forEventType($event->type)->ordered()->get();
+
+        EventClient::loadExercisesDoneElsewhere($bookings, $offeredExercises->modelKeys());
 
         return EventClientResource::collection($bookings)
             ->additional(['meta' => [
@@ -70,7 +73,7 @@ class EventClientController extends Controller
                 'occupied' => $bookings->filter(fn (EventClient $booking): bool => $booking->status->occupiesPlace())->count(),
                 'canManage' => $request->user()->can('manageClients', $event),
                 'canMarkAttendance' => $request->user()->can('markAttendance', $event),
-                'exercises' => Exercise::query()->active()->ordered()->get()
+                'exercises' => $offeredExercises
                     ->map(fn (Exercise $exercise): array => ['id' => $exercise->id, 'name' => $exercise->name])
                     ->all(),
             ]])

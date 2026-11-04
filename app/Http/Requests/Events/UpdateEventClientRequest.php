@@ -4,13 +4,14 @@ namespace App\Http\Requests\Events;
 
 use App\Enums\AttendanceStatus;
 use App\Models\Exercise;
-use Illuminate\Database\Query\Builder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
  * Sets a client's status on the event and, when `notes` or `exercise_ids` are sent, the note
- * and the exercises on the booking. A hidden exercise can be kept but not newly attached.
+ * and the exercises on the booking. Only active exercises of the event's type (or of its parent)
+ * can be newly attached; an exercise already on the booking can be kept even if it is hidden
+ * or not offered for the type any more.
  * Whether the person may record who came is checked in the controller, because it depends
  * on the status the client is moved from and to.
  */
@@ -30,9 +31,7 @@ class UpdateEventClientRequest extends FormRequest
             'status' => ['required', Rule::enum(AttendanceStatus::class)],
             'notes' => ['nullable', 'string', 'max:2000'],
             'exercise_ids' => ['sometimes', 'array'],
-            'exercise_ids.*' => ['integer', 'distinct', Rule::exists(Exercise::class, 'id')->where(
-                fn (Builder $query) => $query->where('is_active', true)->orWhereIn('id', $this->attachedExerciseIds()),
-            )],
+            'exercise_ids.*' => ['integer', 'distinct', Rule::in($this->allowedExerciseIds())],
         ];
     }
 
@@ -56,12 +55,19 @@ class UpdateEventClientRequest extends FormRequest
     }
 
     /**
+     * The exercises offered for the event and the ones already on the booking.
+     *
      * @return list<int>
      */
-    private function attachedExerciseIds(): array
+    private function allowedExerciseIds(): array
     {
-        return $this->route('event')->bookings()
+        $event = $this->route('event');
+
+        $offered = Exercise::query()->active()->forEventType($event->type)->pluck('id')->all();
+        $attached = $event->bookings()
             ->where('client_id', $this->route('client')->getKey())
             ->first()?->exercises()->pluck('exercises.id')->all() ?? [];
+
+        return array_values(array_unique([...$offered, ...$attached]));
     }
 }

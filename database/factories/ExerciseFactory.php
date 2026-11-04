@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\EventType;
 use App\Models\Exercise;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -21,6 +22,16 @@ class ExerciseFactory extends Factory
             'name' => fake()->unique()->words(3, true),
             'is_active' => true,
         ];
+    }
+
+    /**
+     * Offer the exercise for events of the given types.
+     */
+    public function offeredFor(EventType ...$eventTypes): static
+    {
+        return $this->afterCreating(function (Exercise $exercise) use ($eventTypes): void {
+            $exercise->eventTypes()->attach(array_map(fn (EventType $eventType): int => $eventType->id, $eventTypes));
+        });
     }
 
     /**
