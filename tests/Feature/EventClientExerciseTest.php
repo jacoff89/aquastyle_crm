@@ -36,8 +36,8 @@ class EventClientExerciseTest extends TestCase
         $this->actingAs($this->user($isAdmin))
             ->patchJson("/events/{$event->id}/clients/{$client->id}", ['status' => 'booked', 'exercise_ids' => [$mask->id, $ascent->id]])
             ->assertOk()
-            ->assertJsonPath('data.0.exercises.0.name', 'Всплытие')
-            ->assertJsonPath('data.0.exercises.1.name', 'Снятие маски');
+            ->assertJsonPath('data.0.exercises.0.name', 'Снятие маски')
+            ->assertJsonPath('data.0.exercises.1.name', 'Всплытие');
 
         $this->assertEqualsCanonicalizing([$mask->id, $ascent->id], $booking->exercises()->pluck('exercises.id')->all());
     }
@@ -130,6 +130,27 @@ class EventClientExerciseTest extends TestCase
             ->assertOk()
             ->assertJsonCount(1, 'meta.exercises')
             ->assertJsonPath('meta.exercises.0', ['id' => $active->id, 'name' => 'Всплытие']);
+    }
+
+    public function test_listing_marks_exercises_the_client_did_on_other_events(): void
+    {
+        [$event, $client, $booking] = $this->booked();
+        $mask = Exercise::factory()->create();
+        $ascent = Exercise::factory()->create();
+        $towing = Exercise::factory()->create();
+        $booking->exercises()->attach($towing);
+
+        $earlier = EventClient::factory()->forEvent(Event::factory()->ledBy(User::factory()->create())->create())->forClient($client)->create();
+        $earlier->exercises()->attach([$ascent->id, $towing->id]);
+
+        $stranger = EventClient::factory()->forEvent($event)->create();
+        EventClient::factory()->forEvent($earlier->event)->forClient($stranger->client)->create()->exercises()->attach($mask);
+
+        $response = $this->actingAs($this->user(false))->getJson("/events/{$event->id}/clients")->assertOk();
+
+        $rows = collect($response->json('data'))->keyBy('clientId');
+        $this->assertEqualsCanonicalizing([$ascent->id, $towing->id], $rows[$client->id]['exerciseIdsDoneElsewhere']);
+        $this->assertSame([$mask->id], $rows[$stranger->client_id]['exerciseIdsDoneElsewhere']);
     }
 
     public function test_guest_can_not_attach_exercises(): void

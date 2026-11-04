@@ -6,9 +6,12 @@ import PrimaryButton from '../../../components/PrimaryButton.vue';
 import TextInput from '../../../components/TextInput.vue';
 import AppLayout from '../../../layouts/AppLayout.vue';
 
-defineProps({
+const props = defineProps({
     exercises: { type: Array, required: true },
 });
+
+const isFirst = (exercise) => props.exercises[0].id === exercise.id;
+const isLast = (exercise) => props.exercises.at(-1).id === exercise.id;
 
 const url = (exercise) => `/settings/exercises/${exercise.id}`;
 
@@ -47,17 +50,42 @@ const rename = (exercise) => {
 const toggle = (exercise) => {
     router.patch(url(exercise), { is_active: !exercise.isActive }, { preserveScroll: true });
 };
+
+const move = (exercise, direction) => {
+    router.patch(`${url(exercise)}/position`, { direction }, { preserveScroll: true });
+};
 </script>
 
 <template>
     <AppLayout title="Упражнения">
         <p class="max-w-2xl text-sm leading-6 text-muted">
-            Упражнения можно прикреплять к клиенту на занятии: откройте занятие в календаре, вкладка «Клиенты». Скрытое упражнение остаётся у клиентов,
+            Упражнения можно прикреплять к клиенту на занятии: откройте занятие в календаре, вкладка «Клиенты». В этом порядке они предлагаются при выборе. Скрытое упражнение остаётся у клиентов,
             которым оно уже назначено, но выбрать его заново нельзя.
         </p>
 
         <ul class="mt-6 max-w-2xl divide-y divide-line rounded-lg border border-line bg-white">
             <li v-for="exercise in exercises" :key="exercise.id" class="flex items-center gap-3 px-3 py-2.5 sm:px-4">
+                <div class="flex shrink-0 flex-col" aria-label="Порядок">
+                    <button
+                        type="button"
+                        class="rounded p-0.5 text-muted hover:bg-sea-50 hover:text-sea-700 disabled:invisible"
+                        :disabled="isFirst(exercise)"
+                        :aria-label="`Поднять «${exercise.name}» выше`"
+                        @click="move(exercise, 'up')"
+                    >
+                        <AppIcon name="up" />
+                    </button>
+                    <button
+                        type="button"
+                        class="rounded p-0.5 text-muted hover:bg-sea-50 hover:text-sea-700 disabled:invisible"
+                        :disabled="isLast(exercise)"
+                        :aria-label="`Опустить «${exercise.name}» ниже`"
+                        @click="move(exercise, 'down')"
+                    >
+                        <AppIcon name="down" />
+                    </button>
+                </div>
+
                 <form
                     v-if="editingId === exercise.id"
                     class="flex min-w-0 flex-1 flex-wrap items-start gap-2"

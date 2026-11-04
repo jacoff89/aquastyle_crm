@@ -18,6 +18,7 @@ use App\Http\Controllers\ScheduleRangeController;
 use App\Http\Controllers\Settings\EventTypeController;
 use App\Http\Controllers\Settings\EventTypePositionController;
 use App\Http\Controllers\Settings\ExerciseController;
+use App\Http\Controllers\Settings\ExercisePositionController;
 use App\Http\Controllers\Settings\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -72,6 +73,7 @@ Route::middleware('auth')->group(function () {
         Route::get('exercises', [ExerciseController::class, 'index'])->name('exercises.index');
         Route::post('exercises', [ExerciseController::class, 'store'])->name('exercises.store');
         Route::patch('exercises/{exercise}', [ExerciseController::class, 'update'])->name('exercises.update');
+        Route::patch('exercises/{exercise}/position', [ExercisePositionController::class, 'update'])->name('exercises.position');
 
         Route::resource('users', UserController::class)->except(['show', 'destroy']);
     });

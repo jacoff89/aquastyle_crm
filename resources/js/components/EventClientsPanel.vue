@@ -131,11 +131,16 @@ const saveNotes = async (row) => {
 const exercisesEditing = ref(null);
 const exercisesDraft = ref([]);
 
-/** Выбрать можно активные упражнения и те, что уже назначены клиенту, даже скрытые. */
+const isDoneElsewhere = (row, exercise) => row.exerciseIdsDoneElsewhere.includes(exercise.id);
+
+/**
+ * Выбрать можно активные упражнения и те, что уже назначены клиенту, даже скрытые.
+ * Порядок — как в настройках, но упражнения, которые клиент уже делал на других занятиях, идут в конце.
+ */
 const exerciseOptions = (row) => {
     const attached = row.exercises.filter((exercise) => !meta.value.exercises.some((option) => option.id === exercise.id));
 
-    return [...meta.value.exercises, ...attached].sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+    return [...meta.value.exercises, ...attached].sort((a, b) => isDoneElsewhere(row, a) - isDoneElsewhere(row, b));
 };
 
 const startExercises = (row) => {
@@ -406,10 +411,28 @@ onBeforeUnmount(() => {
                             <fieldset>
                                 <legend class="sr-only">Упражнения: {{ row.name }}</legend>
                                 <p v-if="!exerciseOptions(row).length" class="text-sm text-muted">Упражнений пока нет. Их добавляет администратор в настройках.</p>
-                                <label v-for="exercise in exerciseOptions(row)" :key="exercise.id" class="flex items-start gap-2 py-0.5 text-sm text-ink">
-                                    <input v-model="exercisesDraft" type="checkbox" :value="exercise.id" class="mt-0.5 size-4 rounded border-line accent-sea-600" />
-                                    {{ exercise.name }}
-                                </label>
+                                <template v-for="(exercise, index) in exerciseOptions(row)" :key="exercise.id">
+                                    <div
+                                        v-if="isDoneElsewhere(row, exercise) && (index === 0 || !isDoneElsewhere(row, exerciseOptions(row)[index - 1]))"
+                                        class="my-1.5 flex items-center gap-2 text-xs text-muted"
+                                        :class="{ 'mt-0': index === 0 }"
+                                        role="separator"
+                                    >
+                                        <span class="h-px flex-1 bg-line"></span>
+                                        Уже были на других занятиях
+                                        <span class="h-px flex-1 bg-line"></span>
+                                    </div>
+                                    <label
+                                        class="flex items-start gap-2 py-0.5 text-sm"
+                                        :class="isDoneElsewhere(row, exercise) ? 'text-muted' : 'text-ink'"
+                                    >
+                                        <input v-model="exercisesDraft" type="checkbox" :value="exercise.id" class="mt-0.5 size-4 rounded border-line accent-sea-600" />
+                                        <span>
+                                            {{ exercise.name }}
+                                            <span v-if="isDoneElsewhere(row, exercise)" class="ml-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs">уже было</span>
+                                        </span>
+                                    </label>
+                                </template>
                             </fieldset>
                             <div class="flex items-center gap-3">
                                 <button

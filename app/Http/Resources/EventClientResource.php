@@ -8,7 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * A client in the list of an event's window. Expects `client` and `exercises` to be loaded.
+ * A client in the list of an event's window. Expects `client` and `exercises` to be loaded
+ * and `exerciseIdsDoneElsewhere` to be filled by EventClient::loadExercisesDoneElsewhere().
  *
  * @mixin EventClient
  */
@@ -29,6 +30,7 @@ class EventClientResource extends JsonResource
             'isAttendanceMark' => $this->status->isAttendanceMark(),
             'notes' => $this->notes,
             'exercises' => $this->exercises->map(fn (Exercise $exercise): array => ['id' => $exercise->id, 'name' => $exercise->name])->all(),
+            'exerciseIdsDoneElsewhere' => $this->resource->exerciseIdsDoneElsewhere,
         ];
     }
 }

@@ -12,7 +12,7 @@ class ExerciseControllerTest extends TestCase
 {
     use LazilyRefreshDatabase;
 
-    public function test_admin_sees_exercises_by_name_with_hidden_ones(): void
+    public function test_admin_sees_exercises_in_list_order_with_hidden_ones(): void
     {
         $hidden = Exercise::factory()->hidden()->create(['name' => 'Буксировка']);
         Exercise::factory()->create(['name' => 'Всплытие']);
@@ -83,6 +83,60 @@ class ExerciseControllerTest extends TestCase
             ->patch("/settings/exercises/{$exercise->id}", ['is_active' => true])
             ->assertSessionHas('status', 'Упражнение «Новое» снова доступно для выбора.');
         $this->assertTrue($exercise->fresh()->is_active);
+    }
+
+    public function test_new_exercise_goes_to_the_end_of_the_list(): void
+    {
+        $first = Exercise::factory()->create(['name' => 'Я первое']);
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)->post('/settings/exercises', ['name' => 'А второе']);
+
+        $this->assertSame(
+            [$first->id, Exercise::query()->where('name', 'А второе')->value('id')],
+            Exercise::query()->ordered()->pluck('id')->all(),
+        );
+    }
+
+    public function test_admin_moves_exercise_up_and_down(): void
+    {
+        $first = Exercise::factory()->create();
+        $second = Exercise::factory()->create();
+        $third = Exercise::factory()->create();
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)->patch("/settings/exercises/{$third->id}/position", ['direction' => 'up'])->assertRedirect();
+        $this->assertSame([$first->id, $third->id, $second->id], Exercise::query()->ordered()->pluck('id')->all());
+
+        $this->actingAs($admin)->patch("/settings/exercises/{$first->id}/position", ['direction' => 'down'])->assertRedirect();
+        $this->assertSame([$third->id, $first->id, $second->id], Exercise::query()->ordered()->pluck('id')->all());
+    }
+
+    public function test_moving_past_the_ends_of_the_list_changes_nothing(): void
+    {
+        $first = Exercise::factory()->create();
+        $last = Exercise::factory()->create();
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)->patch("/settings/exercises/{$first->id}/position", ['direction' => 'up'])->assertRedirect();
+        $this->actingAs($admin)->patch("/settings/exercises/{$last->id}/position", ['direction' => 'down'])->assertRedirect();
+
+        $this->assertSame([$first->id, $last->id], Exercise::query()->ordered()->pluck('id')->all());
+    }
+
+    public function test_exercise_position_needs_a_valid_direction_and_an_admin(): void
+    {
+        $first = Exercise::factory()->create();
+        $second = Exercise::factory()->create();
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->patch("/settings/exercises/{$second->id}/position", ['direction' => 'sideways'])
+            ->assertSessionHasErrors('direction');
+        $this->actingAs(User::factory()->create())
+            ->patch("/settings/exercises/{$second->id}/position", ['direction' => 'up'])
+            ->assertForbidden();
+
+        $this->assertSame([$first->id, $second->id], Exercise::query()->ordered()->pluck('id')->all());
     }
 
     public function test_exercise_can_not_take_the_name_of_another(): void

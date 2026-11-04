@@ -199,7 +199,7 @@ class ClientBookingHistoryTest extends TestCase
                 ->where('upcoming.0.notes', 'Нужны ласты 42')
                 ->where('upcoming.0.exercises', ['Снятие маски'])
                 ->where('history.0.notes', null)
-                ->where('history.0.exercises', ['Буксировка', 'Всплытие']));
+                ->where('history.0.exercises', ['Всплытие', 'Буксировка']));
     }
 
     private function event(User $lead, int $typeId, string $startsAt, string $endsAt, array $attributes = [], bool $cancelled = false): Event

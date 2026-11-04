@@ -62,6 +62,8 @@ class EventClientController extends Controller
             ->orderBy('event_client.id')
             ->get();
 
+        EventClient::loadExercisesDoneElsewhere($bookings);
+
         return EventClientResource::collection($bookings)
             ->additional(['meta' => [
                 'capacity' => $event->capacity,
