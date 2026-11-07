@@ -112,9 +112,12 @@ class Event extends Model
      * The lead is never also counted as an assistant. Without a lead the event
      * has no instructors at all.
      *
+     * Returns who was put on the event, who was taken off it and whose role changed.
+     *
      * @param  list<int>  $assistantIds
+     * @return array{attached: list<int>, detached: list<int>, updated: list<int>}
      */
-    public function assignInstructors(?int $leadId, array $assistantIds = []): void
+    public function assignInstructors(?int $leadId, array $assistantIds = []): array
     {
         $instructors = [];
 
@@ -128,8 +131,14 @@ class Event extends Model
             }
         }
 
-        $this->instructors()->sync($instructors);
+        $changes = $this->instructors()->sync($instructors);
         $this->unsetRelation('instructors');
+
+        return [
+            'attached' => array_map(intval(...), array_values($changes['attached'])),
+            'detached' => array_map(intval(...), array_values($changes['detached'])),
+            'updated' => array_map(intval(...), array_values($changes['updated'])),
+        ];
     }
 
     /**

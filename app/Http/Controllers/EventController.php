@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Actions\FindInstructorConflicts;
 use App\Enums\EventStatus;
+use App\Events\CalendarEvents\CalendarEventCreated;
+use App\Events\CalendarEvents\CalendarEventInstructorsChanged;
+use App\Events\CalendarEvents\CalendarEventUpdated;
 use App\Http\Requests\Events\EventRequest;
 use App\Http\Requests\Events\StoreEventRequest;
 use App\Http\Requests\Events\UpdateEventRequest;
@@ -32,7 +35,10 @@ class EventController extends Controller
             $event->status = EventStatus::Planned;
             $event->creator()->associate($request->user());
             $event->save();
-            $event->assignInstructors($request->leadInstructorId(), $request->assistantIds());
+            $instructorChanges = $event->assignInstructors($request->leadInstructorId(), $request->assistantIds());
+
+            CalendarEventCreated::dispatch($event, $request->user());
+            CalendarEventInstructorsChanged::dispatchFor($event, $instructorChanges, $request->user());
 
             return $event;
         });
@@ -52,7 +58,10 @@ class EventController extends Controller
             $event->fill($request->eventAttributes());
             $event->status = $request->status();
             $event->save();
-            $event->assignInstructors($request->leadInstructorId(), $request->assistantIds());
+            CalendarEventUpdated::dispatchChanges($event, $request->user());
+
+            $instructorChanges = $event->assignInstructors($request->leadInstructorId(), $request->assistantIds());
+            CalendarEventInstructorsChanged::dispatchFor($event, $instructorChanges, $request->user());
         });
 
         return CalendarEventResource::make($event->load(['type', 'instructors'])->loadOccupiedPlacesCount())->response();

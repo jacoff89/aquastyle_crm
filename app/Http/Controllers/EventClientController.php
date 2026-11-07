@@ -34,7 +34,7 @@ class EventClientController extends Controller
 
     public function store(BookClientRequest $request, Event $event, BookClientOnEvent $bookClient): JsonResponse
     {
-        $bookClient->handle($event, $request->client(), $request->validated('notes'));
+        $bookClient->handle($event, $request->client(), $request->user(), $request->validated('notes'));
 
         return $this->listing($request, $event, 201);
     }
@@ -46,7 +46,7 @@ class EventClientController extends Controller
         $recordsAttendance = $booking->status->isAttendanceMark() || $request->status()->isAttendanceMark();
         Gate::authorize($recordsAttendance ? 'markAttendance' : 'manageClients', $event);
 
-        $changeAttendance->handle($event, $booking, $request->changes());
+        $changeAttendance->handle($event, $booking, $request->changes(), $request->user());
 
         return $this->listing($request, $event);
     }
