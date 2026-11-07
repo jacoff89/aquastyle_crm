@@ -3,6 +3,7 @@
 namespace App\Events\Equipment;
 
 use App\Events\AbstractDomainEvent;
+use App\Events\EventDescription;
 use App\Models\Equipment;
 use App\Models\User;
 
@@ -15,5 +16,10 @@ class EquipmentCreated extends AbstractDomainEvent
     public function __construct(public Equipment $equipment, ?User $actor)
     {
         parent::__construct($actor);
+    }
+
+    public function describe(): ?EventDescription
+    {
+        return new EventDescription('Добавлено снаряжение '.self::equipmentLabel($this->equipment), route('equipment.index'), [$this->equipment->instructor_id]);
     }
 }

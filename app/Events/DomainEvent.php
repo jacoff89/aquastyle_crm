@@ -25,4 +25,10 @@ interface DomainEvent extends ShouldDispatchAfterCommit
      * When the change was made. A queued listener runs later, so it must not use its own clock.
      */
     public function occurredAt(): CarbonImmutable;
+
+    /**
+     * How the change reads to a person and whom it concerns; null when there is nothing to tell,
+     * e.g. an edit that only changed what another event of the same save already describes.
+     */
+    public function describe(): ?EventDescription;
 }

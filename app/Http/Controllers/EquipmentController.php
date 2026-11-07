@@ -69,7 +69,7 @@ class EquipmentController extends Controller
         EquipmentCreated::dispatch($item, $request->user());
 
         if ($item->instructor_id !== null) {
-            EquipmentAssigned::dispatch($item, null, $request->user());
+            EquipmentAssigned::dispatch($item, null, $request->user(), forNewItem: true);
         }
 
         return redirect()->route('equipment.index')->with('status', "Снаряжение «{$item->name}» добавлено в реестр.");

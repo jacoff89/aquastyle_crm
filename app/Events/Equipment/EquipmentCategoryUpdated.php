@@ -4,6 +4,7 @@ namespace App\Events\Equipment;
 
 use App\Events\AbstractDomainEvent;
 use App\Events\ChangeSet;
+use App\Events\EventDescription;
 use App\Models\EquipmentCategory;
 use App\Models\User;
 
@@ -27,5 +28,14 @@ class EquipmentCategoryUpdated extends AbstractDomainEvent
         if ($changes->isNotEmpty()) {
             static::dispatch($category, $changes, $actor);
         }
+    }
+
+    public function describe(): ?EventDescription
+    {
+        if (! $this->changes->has('name')) {
+            return null;
+        }
+
+        return new EventDescription("Категория снаряжения «{$this->changes->old('name')}» переименована в «{$this->changes->new('name')}»", route('equipment.index'));
     }
 }

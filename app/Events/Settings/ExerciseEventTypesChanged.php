@@ -3,6 +3,8 @@
 namespace App\Events\Settings;
 
 use App\Events\AbstractDomainEvent;
+use App\Events\EventDescription;
+use App\Models\EventType;
 use App\Models\Exercise;
 use App\Models\User;
 
@@ -41,5 +43,30 @@ class ExerciseEventTypesChanged extends AbstractDomainEvent
             array_map(intval(...), array_values($changes['detached'])),
             $actor,
         );
+    }
+
+    public function describe(): ?EventDescription
+    {
+        $parts = [];
+
+        if ($this->attachedEventTypeIds !== []) {
+            $parts[] = 'добавлены типы '.self::eventTypeNames($this->attachedEventTypeIds);
+        }
+
+        if ($this->detachedEventTypeIds !== []) {
+            $parts[] = 'убраны типы '.self::eventTypeNames($this->detachedEventTypeIds);
+        }
+
+        return new EventDescription("Упражнение «{$this->exercise->name}»: ".implode('; ', $parts), route('settings.exercises.index'));
+    }
+
+    /**
+     * @param  list<int>  $eventTypeIds
+     */
+    private static function eventTypeNames(array $eventTypeIds): string
+    {
+        return EventType::query()->whereKey($eventTypeIds)->ordered()->get()
+            ->map(fn (EventType $eventType): string => "«{$eventType->full_name}»")
+            ->implode(', ');
     }
 }

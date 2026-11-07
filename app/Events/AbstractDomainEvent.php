@@ -2,18 +2,20 @@
 
 namespace App\Events;
 
+use App\Events\Concerns\DescribesEvents;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * The common part of the application's domain events: who made the change and when.
+ * The common part of the application's domain events: who made the change and when,
+ * and the wording their descriptions share.
  * Models in an event are serialized by key, so a queued listener gets them fresh from the database.
  */
 abstract class AbstractDomainEvent implements DomainEvent
 {
-    use Dispatchable, SerializesModels;
+    use DescribesEvents, Dispatchable, SerializesModels;
 
     public CarbonImmutable $occurredAt;
 

@@ -5,6 +5,7 @@ namespace App\Events\CalendarEvents;
 use App\Enums\EventStatus;
 use App\Events\AbstractDomainEvent;
 use App\Events\ChangeSet;
+use App\Events\EventDescription;
 use App\Models\Event;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -17,6 +18,20 @@ use Carbon\CarbonImmutable;
  */
 class CalendarEventUpdated extends AbstractDomainEvent
 {
+    /**
+     * The event's attributes as they are named in a notice. Attributes without a label
+     * (or announced by an event of their own) are not mentioned.
+     *
+     * @var array<string, string>
+     */
+    private const LABELS = [
+        'title' => 'название',
+        'event_type_id' => 'тип',
+        'location' => 'место',
+        'capacity' => 'количество мест',
+        'notes' => 'заметки',
+    ];
+
     public function __construct(public Event $event, public ChangeSet $changes, ?User $actor)
     {
         parent::__construct($actor);
@@ -54,5 +69,16 @@ class CalendarEventUpdated extends AbstractDomainEvent
                 EventStatus::Planned => CalendarEventReopened::dispatch($event, $previousStatus, $actor),
             };
         }
+    }
+
+    public function describe(): ?EventDescription
+    {
+        $changed = self::changedLabels($this->changes, self::LABELS);
+
+        if ($changed === null) {
+            return null;
+        }
+
+        return new EventDescription('Изменено занятие '.self::calendarEventLabel($this->event).": {$changed}", self::calendarUrl($this->event), self::instructorIdsOf($this->event));
     }
 }

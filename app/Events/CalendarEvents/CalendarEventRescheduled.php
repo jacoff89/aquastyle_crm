@@ -2,7 +2,9 @@
 
 namespace App\Events\CalendarEvents;
 
+use App\Actions\FindInstructorConflicts;
 use App\Events\AbstractDomainEvent;
+use App\Events\EventDescription;
 use App\Models\Event;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -20,5 +22,17 @@ class CalendarEventRescheduled extends AbstractDomainEvent
         ?User $actor,
     ) {
         parent::__construct($actor);
+    }
+
+    public function describe(): ?EventDescription
+    {
+        $previous = FindInstructorConflicts::period($this->previousStartsAt, $this->previousEndsAt);
+        $current = FindInstructorConflicts::period($this->event->starts_at, $this->event->ends_at);
+
+        return new EventDescription(
+            "Занятие «{$this->event->displayTitle()}» перенесено с {$previous} на {$current}",
+            self::calendarUrl($this->event),
+            self::instructorIdsOf($this->event),
+        );
     }
 }

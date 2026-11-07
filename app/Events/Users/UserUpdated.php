@@ -5,6 +5,7 @@ namespace App\Events\Users;
 use App\Enums\Role;
 use App\Events\AbstractDomainEvent;
 use App\Events\ChangeSet;
+use App\Events\EventDescription;
 use App\Models\User;
 
 /**
@@ -15,6 +16,21 @@ use App\Models\User;
  */
 class UserUpdated extends AbstractDomainEvent
 {
+    /**
+     * The account's attributes as they are named in a notice. Attributes without a label
+     * (or announced by an event of their own) are not mentioned.
+     *
+     * @var array<string, string>
+     */
+    private const LABELS = [
+        'name' => 'имя',
+        'last_name' => 'фамилия',
+        'email' => 'email',
+        'phone' => 'телефон',
+        'color' => 'цвет в календаре',
+        'notes' => 'заметки',
+    ];
+
     public function __construct(public User $user, public ChangeSet $changes, ?User $actor)
     {
         parent::__construct($actor);
@@ -43,5 +59,16 @@ class UserUpdated extends AbstractDomainEvent
         if ($user->wasChanged('password')) {
             UserPasswordChanged::dispatch($user, $actor);
         }
+    }
+
+    public function describe(): ?EventDescription
+    {
+        $changed = self::changedLabels($this->changes, self::LABELS);
+
+        if ($changed === null) {
+            return null;
+        }
+
+        return new EventDescription("Изменена учётная запись {$this->user->fullName()}: {$changed}", self::accountUrl($this->user), [$this->user->id], route('profile.edit'));
     }
 }

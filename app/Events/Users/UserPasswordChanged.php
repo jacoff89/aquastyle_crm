@@ -3,6 +3,7 @@
 namespace App\Events\Users;
 
 use App\Events\AbstractDomainEvent;
+use App\Events\EventDescription;
 use App\Models\User;
 
 /**
@@ -22,5 +23,10 @@ class UserPasswordChanged extends AbstractDomainEvent
     public function changedByOwner(): bool
     {
         return $this->actor?->is($this->user) ?? false;
+    }
+
+    public function describe(): ?EventDescription
+    {
+        return new EventDescription("Изменён пароль учётной записи {$this->user->fullName()}", self::accountUrl($this->user), [$this->user->id], route('profile.edit'));
     }
 }

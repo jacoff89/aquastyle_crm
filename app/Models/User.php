@@ -81,6 +81,14 @@ class User extends Authenticatable
         $query->whereJsonContains('roles', Role::Instructor->value);
     }
 
+    /**
+     * The name and the last name in one line.
+     */
+    public function fullName(): string
+    {
+        return trim("{$this->name} {$this->last_name}");
+    }
+
     public function hasRole(Role $role): bool
     {
         return $this->roles?->contains($role) ?? false;
