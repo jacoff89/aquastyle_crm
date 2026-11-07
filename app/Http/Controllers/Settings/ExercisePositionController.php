@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Events\Settings\ExercisesReordered;
 use App\Http\Controllers\Controller;
 use App\Models\Exercise;
 use Illuminate\Http\RedirectResponse;
@@ -22,10 +23,14 @@ class ExercisePositionController extends Controller
             'direction' => ['required', Rule::in(['up', 'down'])],
         ]);
 
-        match ($validated['direction']) {
+        $moved = match ($validated['direction']) {
             'up' => $exercise->moveUp(),
             'down' => $exercise->moveDown(),
         };
+
+        if ($moved) {
+            ExercisesReordered::dispatch($exercise, $validated['direction'], $request->user());
+        }
 
         return back();
     }

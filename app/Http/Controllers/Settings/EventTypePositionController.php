@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Events\Settings\EventTypesReordered;
 use App\Http\Controllers\Controller;
 use App\Models\EventType;
 use Illuminate\Http\RedirectResponse;
@@ -22,10 +23,14 @@ class EventTypePositionController extends Controller
             'direction' => ['required', Rule::in(['up', 'down'])],
         ]);
 
-        match ($validated['direction']) {
+        $moved = match ($validated['direction']) {
             'up' => $eventType->moveUp(),
             'down' => $eventType->moveDown(),
         };
+
+        if ($moved) {
+            EventTypesReordered::dispatch($eventType, $validated['direction'], $request->user());
+        }
 
         return back();
     }

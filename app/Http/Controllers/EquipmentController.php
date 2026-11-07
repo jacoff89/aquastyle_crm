@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Enums\EquipmentStatus;
+use App\Events\Equipment\EquipmentAssigned;
+use App\Events\Equipment\EquipmentCreated;
+use App\Events\Equipment\EquipmentUpdated;
 use App\Http\Requests\Equipment\StoreEquipmentRequest;
 use App\Http\Requests\Equipment\UpdateEquipmentRequest;
 use App\Models\Equipment;
@@ -63,6 +66,12 @@ class EquipmentController extends Controller
     {
         $item = Equipment::create($request->validated());
 
+        EquipmentCreated::dispatch($item, $request->user());
+
+        if ($item->instructor_id !== null) {
+            EquipmentAssigned::dispatch($item, null, $request->user());
+        }
+
         return redirect()->route('equipment.index')->with('status', "Снаряжение «{$item->name}» добавлено в реестр.");
     }
 
@@ -89,6 +98,8 @@ class EquipmentController extends Controller
     public function update(UpdateEquipmentRequest $request, Equipment $equipment): RedirectResponse
     {
         $equipment->update($request->validated());
+
+        EquipmentUpdated::dispatchChanges($equipment, $request->user());
 
         return redirect()->route('equipment.index')->with('status', "Изменения сохранены: {$equipment->name}.");
     }

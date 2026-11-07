@@ -155,34 +155,36 @@ class EventType extends Model
 
     /**
      * Move the type one place up the list. Does nothing when it is already first.
+     * Returns whether it moved.
      */
-    public function moveUp(): void
+    public function moveUp(): bool
     {
-        $this->moveBy(-1);
+        return $this->moveBy(-1);
     }
 
     /**
      * Move the type one place down the list. Does nothing when it is already last.
+     * Returns whether it moved.
      */
-    public function moveDown(): void
+    public function moveDown(): bool
     {
-        $this->moveBy(1);
+        return $this->moveBy(1);
     }
 
     /**
      * Swap the type with its neighbour among the types with the same parent and renumber
      * them, so that positions stay consecutive even if two types ever shared a number.
      */
-    private function moveBy(int $offset): void
+    private function moveBy(int $offset): bool
     {
-        DB::transaction(function () use ($offset): void {
+        $moved = DB::transaction(function () use ($offset): bool {
             $ids = static::query()->where('parent_id', $this->parent_id)->ordered()->lockForUpdate()->pluck('id')->all();
 
             $from = array_search($this->id, $ids, true);
             $to = $from === false ? null : $from + $offset;
 
             if ($to === null || ! array_key_exists($to, $ids)) {
-                return;
+                return false;
             }
 
             [$ids[$from], $ids[$to]] = [$ids[$to], $ids[$from]];
@@ -190,8 +192,12 @@ class EventType extends Model
             foreach ($ids as $index => $id) {
                 static::query()->whereKey($id)->update(['sort_order' => $index + 1]);
             }
+
+            return true;
         });
 
         $this->refresh();
+
+        return $moved;
     }
 }

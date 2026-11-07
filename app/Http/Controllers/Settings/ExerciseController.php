@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Events\Settings\ExerciseCreated;
+use App\Events\Settings\ExerciseEventTypesChanged;
+use App\Events\Settings\ExerciseUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\StoreExerciseRequest;
 use App\Http\Requests\Settings\UpdateExerciseRequest;
@@ -40,15 +43,24 @@ class ExerciseController extends Controller
     {
         $exercise = Exercise::create($request->validated());
 
+        ExerciseCreated::dispatch($exercise, $request->user());
+
         return back()->with('status', "Упражнение «{$exercise->name}» добавлено.");
     }
 
     public function update(UpdateExerciseRequest $request, Exercise $exercise): RedirectResponse
     {
         $exercise->update($request->safe()->except('event_type_ids'));
+        ExerciseUpdated::dispatchChanges($exercise, $request->user());
 
-        $typesChanged = $request->has('event_type_ids')
-            && collect($exercise->eventTypes()->sync($request->eventTypeIds()))->flatten()->isNotEmpty();
+        $typesChanged = false;
+
+        if ($request->has('event_type_ids')) {
+            $typeChanges = $exercise->eventTypes()->sync($request->eventTypeIds());
+            $typesChanged = collect($typeChanges)->flatten()->isNotEmpty();
+
+            ExerciseEventTypesChanged::dispatchFor($exercise, $typeChanges, $request->user());
+        }
 
         $status = match (true) {
             $typesChanged => "Типы занятий для «{$exercise->name}» сохранены.",

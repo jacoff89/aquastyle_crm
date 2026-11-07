@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Events\Settings\EventTypeCreated;
+use App\Events\Settings\EventTypeUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\StoreEventTypeRequest;
 use App\Http\Requests\Settings\UpdateEventTypeRequest;
@@ -32,12 +34,15 @@ class EventTypeController extends Controller
     {
         $eventType = EventType::create($request->validated());
 
+        EventTypeCreated::dispatch($eventType, $request->user());
+
         return back()->with('status', "Тип «{$eventType->name}» добавлен.");
     }
 
     public function update(UpdateEventTypeRequest $request, EventType $eventType): RedirectResponse
     {
         $eventType->update($request->validated());
+        EventTypeUpdated::dispatchChanges($eventType, $request->user());
         $eventType->load('parent');
 
         $status = match (true) {

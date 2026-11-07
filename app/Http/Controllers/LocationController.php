@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\Settings\LocationCreated;
+use App\Events\Settings\LocationUpdated;
 use App\Http\Requests\Locations\StoreLocationRequest;
 use App\Http\Requests\Locations\UpdateLocationRequest;
 use App\Models\Location;
@@ -40,12 +42,16 @@ class LocationController extends Controller
     {
         $location = Location::create($request->validated());
 
+        LocationCreated::dispatch($location, $request->user());
+
         return back()->with('status', "Локация «{$location->name}» добавлена.");
     }
 
     public function update(UpdateLocationRequest $request, Location $location): RedirectResponse
     {
         $location->update($request->validated());
+
+        LocationUpdated::dispatchChanges($location, $request->user());
 
         $status = match (true) {
             $location->wasChanged('is_active') && $location->is_active => "Локация «{$location->name}» снова предлагается в занятиях.",
