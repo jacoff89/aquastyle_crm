@@ -73,6 +73,14 @@ return [
             'replace_placeholders' => true,
         ],
 
+        'events' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/events.log'),
+            'level' => 'info',
+            'max_files' => env('LOG_EVENTS_DAYS', 30),
+            'replace_placeholders' => true,
+        ],
+
         'monthly' => [
             'driver' => 'monthly',
             'path' => storage_path('logs/laravel.log'),
