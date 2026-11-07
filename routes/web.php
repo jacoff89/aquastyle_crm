@@ -15,6 +15,7 @@ use App\Http\Controllers\EventClientController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\InstructorController;
 use App\Http\Controllers\LocationController;
+use App\Http\Controllers\NoticeController;
 use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ScheduleRangeController;
@@ -52,6 +53,10 @@ Route::middleware('auth')->group(function () {
     Route::patch('events/{event}/clients/{client}', [EventClientController::class, 'update'])
         ->withTrashed()
         ->name('events.clients.update');
+
+    Route::get('notifications', [NoticeController::class, 'index'])->name('notices.index');
+    Route::post('notifications/read-all', [NoticeController::class, 'readAll'])->name('notices.read-all');
+    Route::post('notifications/{notice}/open', [NoticeController::class, 'open'])->name('notices.open');
 
     Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('profile', [ProfileController::class, 'update'])->name('profile.update');

@@ -7,6 +7,7 @@ use App\Models\Equipment;
 use App\Models\EventType;
 use App\Models\Exercise;
 use App\Models\Location;
+use App\Models\Notice;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -64,6 +65,7 @@ class HandleInertiaRequests extends Middleware
                 'viewEquipment' => $user?->can('viewAny', Equipment::class) ?? false,
                 'manageEquipment' => $user?->can('create', Equipment::class) ?? false,
             ],
+            'unreadNotices' => fn (): int => $user === null ? 0 : Notice::unreadCountFor($user),
             'flash' => [
                 'status' => fn () => $request->session()->get('status'),
             ],

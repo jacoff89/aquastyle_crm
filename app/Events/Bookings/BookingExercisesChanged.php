@@ -3,7 +3,9 @@
 namespace App\Events\Bookings;
 
 use App\Events\AbstractDomainEvent;
+use App\Events\EventDescription;
 use App\Models\EventClient;
+use App\Models\Exercise;
 use App\Models\User;
 
 /**
@@ -41,5 +43,35 @@ class BookingExercisesChanged extends AbstractDomainEvent
             array_map(intval(...), array_values($changes['detached'])),
             $actor,
         );
+    }
+
+    public function describe(): ?EventDescription
+    {
+        $event = $this->booking->event;
+        $parts = [];
+
+        if ($this->attachedExerciseIds !== []) {
+            $parts[] = 'добавлены '.self::exerciseNames($this->attachedExerciseIds);
+        }
+
+        if ($this->detachedExerciseIds !== []) {
+            $parts[] = 'сняты '.self::exerciseNames($this->detachedExerciseIds);
+        }
+
+        return new EventDescription(
+            "Упражнения клиента {$this->booking->client->fullName()} на занятии ".self::calendarEventLabel($event).': '.implode('; ', $parts),
+            self::calendarUrl($event),
+            self::instructorIdsOf($event),
+        );
+    }
+
+    /**
+     * @param  list<int>  $exerciseIds
+     */
+    private static function exerciseNames(array $exerciseIds): string
+    {
+        return Exercise::query()->whereKey($exerciseIds)->ordered()->pluck('name')
+            ->map(fn (string $name): string => "«{$name}»")
+            ->implode(', ');
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Events\Clients;
 
 use App\Events\AbstractDomainEvent;
+use App\Events\EventDescription;
 use App\Models\Client;
 use App\Models\User;
 
@@ -15,5 +16,10 @@ class ClientDeleted extends AbstractDomainEvent
     public function __construct(public Client $client, ?User $actor)
     {
         parent::__construct($actor);
+    }
+
+    public function describe(): ?EventDescription
+    {
+        return new EventDescription("Удалён клиент {$this->client->fullName()}");
     }
 }

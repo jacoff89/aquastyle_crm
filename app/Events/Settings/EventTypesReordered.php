@@ -3,6 +3,7 @@
 namespace App\Events\Settings;
 
 use App\Events\AbstractDomainEvent;
+use App\Events\EventDescription;
 use App\Models\EventType;
 use App\Models\User;
 
@@ -18,5 +19,12 @@ class EventTypesReordered extends AbstractDomainEvent
     public function __construct(public EventType $eventType, public string $direction, ?User $actor)
     {
         parent::__construct($actor);
+    }
+
+    public function describe(): ?EventDescription
+    {
+        $where = $this->direction === 'up' ? 'выше' : 'ниже';
+
+        return new EventDescription("Тип занятий «{$this->eventType->full_name}» перемещён {$where} в списке", route('settings.event-types.index'));
     }
 }

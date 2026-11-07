@@ -1,5 +1,5 @@
 <script setup>
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, usePage, usePoll } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import AppIcon from '../components/AppIcon.vue';
 import AppLogo from '../components/AppLogo.vue';
@@ -16,12 +16,28 @@ const status = computed(() => page.props.flash.status);
 const menuOpen = ref(false);
 
 /**
+ * Непрочитанные уведомления. Сервер считает их только до 100, поэтому больше 99 показываем как «99+».
+ * Счётчик обновляется при каждом переходе и раз в минуту частичной перезагрузкой одного этого поля.
+ */
+const unreadNotices = computed(() => page.props.unreadNotices ?? 0);
+const unreadBadge = computed(() => {
+    if (unreadNotices.value === 0) {
+        return null;
+    }
+
+    return unreadNotices.value > 99 ? '99+' : String(unreadNotices.value);
+});
+
+usePoll(60_000, { only: ['unreadNotices'] });
+
+/**
  * Разделы, которые появятся на следующих этапах, показаны без ссылки,
  * чтобы структура меню была видна сразу. Инструкторов ведёт только администратор.
  */
 const sections = computed(() =>
     [
         { label: 'Календарь', href: '/calendar', icon: 'calendar' },
+        { label: 'Уведомления', href: '/notifications', icon: 'bell', badge: unreadBadge.value },
         { label: 'Клиенты', href: '/clients', icon: 'clients' },
         page.props.can.manageInstructors && { label: 'Инструкторы', href: '/instructors', icon: 'instructors' },
         page.props.can.manageLocations && { label: 'Локации', href: '/locations', icon: 'locations' },
@@ -68,12 +84,13 @@ onBeforeUnmount(() => {
         <div class="flex items-center gap-3 bg-depth-900 px-4 py-3 lg:hidden">
             <button
                 type="button"
-                class="-ml-1 rounded-md p-1.5 text-depth-300 hover:bg-depth-800 hover:text-white"
-                aria-label="Открыть меню"
+                class="relative -ml-1 rounded-md p-1.5 text-depth-300 hover:bg-depth-800 hover:text-white"
+                :aria-label="unreadBadge ? `Открыть меню, непрочитанных уведомлений: ${unreadBadge}` : 'Открыть меню'"
                 :aria-expanded="menuOpen"
                 @click="menuOpen = true"
             >
                 <AppIcon name="menu" />
+                <span v-if="unreadBadge" class="absolute top-1 right-1 size-2 rounded-full bg-flag" aria-hidden="true" />
             </button>
             <AppLogo size="small" />
             <span class="font-semibold text-white">{{ page.props.appName }}</span>
@@ -107,7 +124,14 @@ onBeforeUnmount(() => {
             <nav class="flex-1 space-y-8 px-3" aria-label="Основное меню">
                 <ul class="space-y-1">
                     <li v-for="item in sections" :key="item.label">
-                        <SidebarLink v-if="item.href" :href="item.href" :icon="item.icon" :current="isCurrent(item.href)">
+                        <SidebarLink
+                            v-if="item.href"
+                            :href="item.href"
+                            :icon="item.icon"
+                            :current="isCurrent(item.href)"
+                            :badge="item.badge"
+                            :badge-label="item.badge ? `непрочитанных: ${item.badge}` : null"
+                        >
                             {{ item.label }}
                         </SidebarLink>
                         <span v-else class="flex items-center gap-3 px-3 py-2 text-sm text-depth-300/60" aria-disabled="true">

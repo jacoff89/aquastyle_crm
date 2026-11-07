@@ -6,6 +6,10 @@ defineProps({
     href: { type: String, required: true },
     icon: { type: String, required: true },
     current: { type: Boolean, default: false },
+    /** Счётчик справа от пункта, например непрочитанные уведомления; не показывается, когда пуст. */
+    badge: { type: String, default: null },
+    /** Подпись счётчика для экранных дикторов. */
+    badgeLabel: { type: String, default: null },
 });
 </script>
 
@@ -18,5 +22,12 @@ defineProps({
     >
         <AppIcon :name="icon" />
         <slot />
+        <span
+            v-if="badge"
+            class="ml-auto min-w-5 rounded-full bg-flag px-1.5 py-0.5 text-center text-xs leading-none font-semibold text-white"
+            :aria-label="badgeLabel ?? undefined"
+        >
+            {{ badge }}
+        </span>
     </Link>
 </template>

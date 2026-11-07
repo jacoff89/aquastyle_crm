@@ -38,7 +38,7 @@ class EventController extends Controller
             $instructorChanges = $event->assignInstructors($request->leadInstructorId(), $request->assistantIds());
 
             CalendarEventCreated::dispatch($event, $request->user());
-            CalendarEventInstructorsChanged::dispatchFor($event, $instructorChanges, $request->user());
+            CalendarEventInstructorsChanged::dispatchFor($event, $instructorChanges, $request->user(), forNewEvent: true);
 
             return $event;
         });

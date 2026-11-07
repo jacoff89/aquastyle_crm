@@ -3,6 +3,7 @@
 namespace App\Events\Clients;
 
 use App\Events\AbstractDomainEvent;
+use App\Events\EventDescription;
 use App\Models\Client;
 use App\Models\User;
 
@@ -14,5 +15,10 @@ class ClientCreated extends AbstractDomainEvent
     public function __construct(public Client $client, ?User $actor)
     {
         parent::__construct($actor);
+    }
+
+    public function describe(): ?EventDescription
+    {
+        return new EventDescription("Новый клиент: {$this->client->fullName()}", route('clients.show', $this->client));
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Events\CalendarEvents;
 
 use App\Events\AbstractDomainEvent;
+use App\Events\EventDescription;
 use App\Models\Event;
 use App\Models\User;
 
@@ -15,5 +16,16 @@ class CalendarEventCreated extends AbstractDomainEvent
     public function __construct(public Event $event, ?User $actor)
     {
         parent::__construct($actor);
+    }
+
+    public function describe(): ?EventDescription
+    {
+        $lead = $this->event->leadInstructor();
+
+        return new EventDescription(
+            'Новое занятие '.self::calendarEventLabel($this->event).($lead === null ? '' : ", ведущий {$lead->fullName()}"),
+            self::calendarUrl($this->event),
+            self::instructorIdsOf($this->event),
+        );
     }
 }
