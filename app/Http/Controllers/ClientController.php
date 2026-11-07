@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Enums\AttendanceStatus;
 use App\Enums\CommunicationChannel;
 use App\Enums\EventStatus;
+use App\Events\Clients\ClientCreated;
+use App\Events\Clients\ClientDeleted;
+use App\Events\Clients\ClientUpdated;
 use App\Http\Requests\Clients\StoreClientRequest;
 use App\Http\Requests\Clients\UpdateClientRequest;
 use App\Models\Client;
@@ -109,6 +112,8 @@ class ClientController extends Controller
         $client->creator()->associate($request->user());
         $client->save();
 
+        ClientCreated::dispatch($client, $request->user());
+
         if ($request->wantsJson()) {
             return response()->json([
                 'client' => [
@@ -162,14 +167,18 @@ class ClientController extends Controller
     {
         $client->update(Arr::except($request->validated(), ['confirm_duplicate']));
 
+        ClientUpdated::dispatchChanges($client, $request->user());
+
         return redirect()->route('clients.show', $client)->with('status', "Изменения сохранены: {$client->fullName()}.");
     }
 
-    public function destroy(Client $client): RedirectResponse
+    public function destroy(Request $request, Client $client): RedirectResponse
     {
         Gate::authorize('delete', $client);
 
         $client->delete();
+
+        ClientDeleted::dispatch($client, $request->user());
 
         return redirect()->route('clients.index')->with('status', "Клиент удалён: {$client->fullName()}. История занятий сохранится.");
     }
