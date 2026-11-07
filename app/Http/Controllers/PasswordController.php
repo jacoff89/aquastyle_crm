@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\Users\UserUpdated;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rules\Password;
@@ -21,6 +22,8 @@ class PasswordController extends Controller
         $request->user()->update([
             'password' => $validated['password'],
         ]);
+
+        UserUpdated::dispatchChanges($request->user(), $request->user());
 
         return back()->with('status', 'Пароль изменён.');
     }

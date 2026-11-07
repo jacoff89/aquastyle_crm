@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\ListInstructorSchedule;
 use App\Enums\ScheduleRange;
+use App\Events\Users\UserUpdated;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -39,6 +40,8 @@ class ProfileController extends Controller
         ]);
 
         $request->user()->update($validated);
+
+        UserUpdated::dispatchChanges($request->user(), $request->user());
 
         return back()->with('status', 'Профиль сохранён.');
     }

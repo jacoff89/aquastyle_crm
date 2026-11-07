@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Enums\Role;
+use App\Events\Users\UserCreated;
 use App\Models\User;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
@@ -52,13 +53,15 @@ class CreateAdmin extends Command
 
         $validated = $validator->validated();
 
-        User::create([
+        $admin = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => $validated['password'],
             'roles' => [Role::Admin],
             'is_active' => true,
         ]);
+
+        UserCreated::dispatch($admin, null);
 
         $this->info("Администратор {$validated['email']} создан. Теперь можно войти в систему.");
 

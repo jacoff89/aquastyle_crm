@@ -9,6 +9,7 @@ use Illuminate\Validation\Rule;
 
 /**
  * Remembers how far ahead the signed-in user wants to see an instructor's schedule.
+ * It is a preference of the interface, not a change of the account, so no domain event announces it.
  */
 class ScheduleRangeController extends Controller
 {

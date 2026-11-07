@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Settings;
 
 use App\Enums\Role;
+use App\Events\Users\UserCreated;
+use App\Events\Users\UserUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\StoreUserRequest;
 use App\Http\Requests\Settings\UpdateUserRequest;
@@ -54,6 +56,8 @@ class UserController extends Controller
         $user->creator()->associate($request->user());
         $user->save();
 
+        UserCreated::dispatch($user, $request->user());
+
         return redirect()->route('settings.users.index')->with('status', "Добавлена учётная запись: {$user->name}.");
     }
 
@@ -87,6 +91,8 @@ class UserController extends Controller
         }
 
         $user->save();
+
+        UserUpdated::dispatchChanges($user, $request->user());
 
         return redirect()->route('settings.users.index')->with('status', "Изменения сохранены: {$user->name}.");
     }

@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Actions\ListInstructorSchedule;
 use App\Enums\Role;
 use App\Enums\ScheduleRange;
+use App\Events\Users\UserCreated;
+use App\Events\Users\UserUpdated;
 use App\Http\Requests\Instructors\StoreInstructorRequest;
 use App\Http\Requests\Instructors\UpdateInstructorRequest;
 use App\Models\User;
@@ -61,6 +63,8 @@ class InstructorController extends Controller
         $instructor->creator()->associate($request->user());
         $instructor->save();
 
+        UserCreated::dispatch($instructor, $request->user());
+
         return redirect()->route('instructors.show', $instructor)->with('status', "Добавлен инструктор: {$instructor->name}.");
     }
 
@@ -116,6 +120,8 @@ class InstructorController extends Controller
         }
 
         $instructor->save();
+
+        UserUpdated::dispatchChanges($instructor, $request->user());
 
         return redirect()->route('instructors.show', $instructor)->with('status', "Изменения сохранены: {$instructor->name}.");
     }
