@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Enums\NoticeType;
+use App\Enums\TelegramNoticeScope;
 use Database\Factories\NoticeFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,6 +24,9 @@ use Illuminate\Support\Facades\DB;
  * the users in `recipients`, e.g. the instructors of a rescheduled event.
  * Whether a user has read a notice is kept per user in `readers`; the author of the change
  * gets it already read.
+ *
+ * Users who linked Telegram also get the notices of the types they chose there
+ * (see telegramRecipients()).
  *
  * Notices are not domain data, so creating or reading them announces no domain event.
  */
@@ -123,6 +129,36 @@ class Notice extends Model
         }
 
         return $this->url;
+    }
+
+    /**
+     * The users who get the notice in Telegram: active users with a linked chat who chose its type,
+     * either every notice of it (administrators) or the ones that concern them.
+     * The author of the change is left out, since they know about it.
+     *
+     * @return Collection<int, User>
+     */
+    public function telegramRecipients(): Collection
+    {
+        $type = NoticeType::tryFrom($this->type);
+
+        if ($type === null) {
+            return new Collection;
+        }
+
+        $concernedIds = $this->recipients()->pluck('users.id')->map(intval(...))->all();
+
+        return User::query()
+            ->whereNotNull('telegram_chat_id')
+            ->where('is_active', true)
+            ->when($this->actor_id !== null, fn (Builder $users) => $users->whereKeyNot($this->actor_id))
+            ->get()
+            ->filter(fn (User $user): bool => match ($user->telegramScopeFor($type)) {
+                TelegramNoticeScope::All => true,
+                TelegramNoticeScope::Mine => in_array($user->id, $concernedIds, true),
+                null => false,
+            })
+            ->values();
     }
 
     public function markAsReadBy(User $user): void

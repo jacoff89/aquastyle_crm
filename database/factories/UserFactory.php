@@ -71,6 +71,20 @@ class UserFactory extends Factory
     }
 
     /**
+     * Indicate that the user has linked a Telegram chat, optionally with the notices they chose there.
+     *
+     * @param  ?array<string, string>  $notices  e.g. ['ClientBooked' => 'mine']; null keeps the defaults
+     */
+    public function withTelegram(?array $notices = null): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'telegram_chat_id' => fake()->unique()->numberBetween(100_000_000, 999_999_999),
+            'telegram_username' => fake()->userName(),
+            'telegram_notices' => $notices,
+        ]);
+    }
+
+    /**
      * Indicate that the model's email address should be unverified.
      */
     public function unverified(): static

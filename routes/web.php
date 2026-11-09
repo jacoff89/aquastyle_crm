@@ -16,6 +16,7 @@ use App\Http\Controllers\EventController;
 use App\Http\Controllers\InstructorController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\NoticeController;
+use App\Http\Controllers\NoticeSettingsController;
 use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ScheduleRangeController;
@@ -24,6 +25,9 @@ use App\Http\Controllers\Settings\EventTypePositionController;
 use App\Http\Controllers\Settings\ExerciseController;
 use App\Http\Controllers\Settings\ExercisePositionController;
 use App\Http\Controllers\Settings\UserController;
+use App\Http\Controllers\TelegramLinkController;
+use App\Http\Controllers\TelegramWebhookController;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -38,6 +42,11 @@ Route::middleware('guest')->group(function () {
     Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
     Route::post('reset-password', [NewPasswordController::class, 'store'])->name('password.store');
 });
+
+// Telegram posts the bot's updates here; it proves itself with the webhook secret instead of a CSRF token.
+Route::post('telegram/webhook', TelegramWebhookController::class)
+    ->withoutMiddleware(ValidateCsrfToken::class)
+    ->name('telegram.webhook');
 
 Route::middleware('auth')->group(function () {
     Route::redirect('/', '/calendar')->name('home');
@@ -56,6 +65,10 @@ Route::middleware('auth')->group(function () {
 
     Route::get('notifications', [NoticeController::class, 'index'])->name('notices.index');
     Route::post('notifications/read-all', [NoticeController::class, 'readAll'])->name('notices.read-all');
+    Route::get('notifications/settings', [NoticeSettingsController::class, 'edit'])->name('notices.settings.edit');
+    Route::put('notifications/settings', [NoticeSettingsController::class, 'update'])->name('notices.settings.update');
+    Route::post('notifications/telegram', [TelegramLinkController::class, 'store'])->name('notices.telegram.store');
+    Route::delete('notifications/telegram', [TelegramLinkController::class, 'destroy'])->name('notices.telegram.destroy');
     Route::post('notifications/{notice}/open', [NoticeController::class, 'open'])->name('notices.open');
 
     Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');

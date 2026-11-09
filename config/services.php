@@ -28,6 +28,18 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    /*
+    | The bot that sends notices to Telegram. The proxy is used only for requests to the Bot API,
+    | for a server that cannot reach api.telegram.org directly. The webhook secret is derived
+    | from the application key when it is not set.
+    */
+    'telegram' => [
+        'token' => env('TELEGRAM_BOT_TOKEN'),
+        'username' => env('TELEGRAM_BOT_USERNAME'),
+        'proxy' => env('TELEGRAM_PROXY'),
+        'webhook_secret' => env('TELEGRAM_WEBHOOK_SECRET'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

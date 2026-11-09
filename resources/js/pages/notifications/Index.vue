@@ -24,14 +24,22 @@ const readAll = () => {
 <template>
     <AppLayout title="Уведомления">
         <template #actions>
-            <button
-                v-if="hasUnread"
-                type="button"
-                class="rounded-md border border-line bg-white px-3 py-1.5 text-sm text-ink hover:bg-surface"
-                @click="readAll"
-            >
-                Отметить все прочитанными
-            </button>
+            <div class="flex flex-wrap gap-2">
+                <button
+                    v-if="hasUnread"
+                    type="button"
+                    class="rounded-md border border-line bg-white px-3 py-1.5 text-sm text-ink hover:bg-surface"
+                    @click="readAll"
+                >
+                    Отметить все прочитанными
+                </button>
+                <Link
+                    href="/notifications/settings"
+                    class="rounded-md border border-line bg-white px-3 py-1.5 text-sm text-ink hover:bg-surface"
+                >
+                    Telegram и настройки
+                </Link>
+            </div>
         </template>
 
         <nav class="flex gap-1" aria-label="Какие уведомления показать">

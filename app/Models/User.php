@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\NoticeType;
 use App\Enums\Role;
 use App\Enums\ScheduleRange;
+use App\Enums\TelegramNoticeScope;
 use App\Notifications\ResetPasswordNotification;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -40,6 +42,8 @@ class User extends Authenticatable
             'roles' => AsEnumCollection::of(Role::class),
             'is_active' => 'boolean',
             'schedule_range' => ScheduleRange::class,
+            'telegram_chat_id' => 'integer',
+            'telegram_notices' => 'array',
         ];
     }
 
@@ -87,6 +91,86 @@ class User extends Authenticatable
     public function fullName(): string
     {
         return trim("{$this->name} {$this->last_name}");
+    }
+
+    /**
+     * Whether the user has linked a Telegram chat to get notices in.
+     */
+    public function hasTelegram(): bool
+    {
+        return $this->telegram_chat_id !== null;
+    }
+
+    /**
+     * The chat the "telegram" notification channel delivers to.
+     */
+    public function routeNotificationForTelegram(): ?int
+    {
+        return $this->telegram_chat_id;
+    }
+
+    /**
+     * Link the private chat with the bot to the account. A chat belongs to one account,
+     * so it is taken from the account that had it before, if any.
+     */
+    public function linkTelegram(int $chatId, ?string $username): void
+    {
+        static::query()->where('telegram_chat_id', $chatId)->whereKeyNot($this->getKey())
+            ->update(['telegram_chat_id' => null, 'telegram_username' => null]);
+
+        $this->forceFill(['telegram_chat_id' => $chatId, 'telegram_username' => $username])->save();
+    }
+
+    /**
+     * Stop sending notices to Telegram. The choice of notices is kept for when the chat is linked again.
+     */
+    public function unlinkTelegram(): void
+    {
+        $this->forceFill(['telegram_chat_id' => null, 'telegram_username' => null])->save();
+    }
+
+    /**
+     * Which notices of the type the user wants in Telegram; null when none.
+     *
+     * Until the user chooses, they get the personal types, the notices that concern them.
+     * A choice their roles no longer allow is narrowed: a type only administrators get is dropped,
+     * and every notice of a type becomes the ones that concern them.
+     */
+    public function telegramScopeFor(NoticeType $type): ?TelegramNoticeScope
+    {
+        if (! in_array($type, NoticeType::availableTo($this), true)) {
+            return null;
+        }
+
+        $scope = $this->telegram_notices === null
+            ? ($type->isPersonal() ? TelegramNoticeScope::Mine : null)
+            : TelegramNoticeScope::tryFrom((string) ($this->telegram_notices[$type->value] ?? ''));
+
+        if ($scope === null) {
+            return null;
+        }
+
+        return in_array($scope, TelegramNoticeScope::availableTo($this), true) ? $scope : TelegramNoticeScope::Mine;
+    }
+
+    /**
+     * Every type the user wants in Telegram with its scope, e.g. ["ClientBooked" => "mine"].
+     *
+     * @return array<string, string>
+     */
+    public function telegramNoticeChoices(): array
+    {
+        $choices = [];
+
+        foreach (NoticeType::availableTo($this) as $type) {
+            $scope = $this->telegramScopeFor($type);
+
+            if ($scope !== null) {
+                $choices[$type->value] = $scope->value;
+            }
+        }
+
+        return $choices;
     }
 
     public function hasRole(Role $role): bool
