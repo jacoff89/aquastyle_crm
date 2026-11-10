@@ -70,6 +70,14 @@ class TelegramWebhookTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_the_webhook_is_not_stopped_by_the_csrf_check(): void
+    {
+        // The CSRF check is skipped while testing; make it run as in production.
+        $this->app['env'] = 'production';
+
+        $this->postUpdate($this->message('/start'), 'wrong')->assertForbidden();
+    }
+
     public function test_the_webhook_is_not_there_while_the_bot_is_not_configured(): void
     {
         config(['services.telegram.token' => null]);

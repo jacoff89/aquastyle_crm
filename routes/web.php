@@ -27,7 +27,6 @@ use App\Http\Controllers\Settings\ExercisePositionController;
 use App\Http\Controllers\Settings\UserController;
 use App\Http\Controllers\TelegramLinkController;
 use App\Http\Controllers\TelegramWebhookController;
-use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -43,10 +42,8 @@ Route::middleware('guest')->group(function () {
     Route::post('reset-password', [NewPasswordController::class, 'store'])->name('password.store');
 });
 
-// Telegram posts the bot's updates here; it proves itself with the webhook secret instead of a CSRF token.
-Route::post('telegram/webhook', TelegramWebhookController::class)
-    ->withoutMiddleware(ValidateCsrfToken::class)
-    ->name('telegram.webhook');
+// Telegram posts the bot's updates here; it proves itself with the webhook secret (CSRF check is skipped in bootstrap/app.php).
+Route::post('telegram/webhook', TelegramWebhookController::class)->name('telegram.webhook');
 
 Route::middleware('auth')->group(function () {
     Route::redirect('/', '/calendar')->name('home');

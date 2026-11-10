@@ -16,6 +16,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
 
+        // Telegram posts the bot's updates here; it proves itself with the webhook secret instead of a CSRF token.
+        $middleware->preventRequestForgery(except: ['telegram/webhook']);
+
         $middleware->web(append: [
             EnsureUserIsActive::class,
             HandleInertiaRequests::class,
