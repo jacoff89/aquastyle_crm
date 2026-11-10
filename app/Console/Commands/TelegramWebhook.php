@@ -11,7 +11,9 @@ use Illuminate\Console\Command;
 
 /**
  * Points the bot's webhook at this installation, so that "/start" from the link on the settings page
- * reaches the CRM. Run it once after deploying with the bot configured, or after changing APP_URL.
+ * reaches the CRM. Run it once after deploying with the bot configured, or after changing APP_URL
+ * or TELEGRAM_WEBHOOK_URL. The webhook is the site's own address unless TELEGRAM_WEBHOOK_URL
+ * points it at a relay, for a server Telegram cannot reach directly.
  * Telegram only posts to a public HTTPS address; locally use telegram:poll instead.
  */
 #[Signature('telegram:webhook
@@ -35,7 +37,7 @@ class TelegramWebhook extends Command
                 return self::SUCCESS;
             }
 
-            $url = route('telegram.webhook');
+            $url = config('services.telegram.webhook_url') ?: route('telegram.webhook');
             $bot->setWebhook($url, HandleTelegramUpdate::ALLOWED_UPDATES);
             $this->info("Webhook подключён: {$url}");
         } catch (TelegramException $exception) {

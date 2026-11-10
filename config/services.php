@@ -31,13 +31,15 @@ return [
     /*
     | The bot that sends notices to Telegram. The proxy is used only for requests to the Bot API,
     | for a server that cannot reach api.telegram.org directly. The webhook secret is derived
-    | from the application key when it is not set.
+    | from the application key when it is not set. The webhook URL is the site's own one unless
+    | set: a server Telegram cannot reach gets the updates through a relay at that address.
     */
     'telegram' => [
         'token' => env('TELEGRAM_BOT_TOKEN'),
         'username' => env('TELEGRAM_BOT_USERNAME'),
         'proxy' => env('TELEGRAM_PROXY'),
         'webhook_secret' => env('TELEGRAM_WEBHOOK_SECRET'),
+        'webhook_url' => env('TELEGRAM_WEBHOOK_URL'),
     ],
 
     'slack' => [
