@@ -190,9 +190,9 @@ const instructorOfSplit = (split) => (split === UNASSIGNED ? null : (split ?? nu
 const instructorsById = computed(() => new Map(props.instructors.map((instructor) => [instructor.id, instructor])));
 
 /**
- * В дневном виде у каждого инструктора своя колонка; с фильтром по инструктору
- * остаётся одна. В конце стоит колонка занятий без инструктора. Отключённые инструкторы получают колонку, только если у них есть
- * занятия в этот день.
+ * В дневном виде колонку получает только инструктор, у которого в этот день есть занятия;
+ * с фильтром по инструктору остаётся его колонка, даже если день у него свободен.
+ * В конце стоит колонка занятий без инструктора.
  */
 const splits = computed(() => {
     if (activeView.value !== 'day') {
@@ -202,8 +202,9 @@ const splits = computed(() => {
     const busyIds = new Set(events.value.flatMap((event) => event.instructors.map((instructor) => instructor.id)));
 
     const columns = props.instructors
-        .filter((instructor) => instructorFilter.value === '' || instructor.id === instructorFilter.value)
-        .filter((instructor) => instructor.isActive || busyIds.has(instructor.id))
+        .filter((instructor) =>
+            instructorFilter.value === '' ? busyIds.has(instructor.id) : instructor.id === instructorFilter.value,
+        )
         .map((instructor) => ({ id: instructor.id, label: instructor.name, color: instructor.color }));
 
     if (instructorFilter.value === '' || instructorFilter.value === UNASSIGNED) {
