@@ -74,4 +74,56 @@ class EventPolicyTest extends TestCase
 
         $this->assertTrue($teachingAdmin->can('markAttendance', $event));
     }
+
+    public function test_administrator_deletes_any_event(): void
+    {
+        $event = Event::factory()->ledBy(User::factory()->create())->create();
+
+        $this->assertTrue(User::factory()->admin()->create()->can('delete', $event));
+    }
+
+    public function test_only_the_lead_of_the_event_deletes_it_among_instructors(): void
+    {
+        $lead = User::factory()->create();
+        $assistant = User::factory()->create();
+        $event = Event::factory()->ledBy($lead, [$assistant])->create();
+
+        $this->assertTrue($lead->can('delete', $event));
+        $this->assertFalse($assistant->can('delete', $event));
+        $this->assertFalse(User::factory()->create()->can('delete', $event));
+    }
+
+    public function test_administrator_moves_clients_between_any_events(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $from = Event::factory()->ledBy(User::factory()->create())->create();
+        $to = Event::factory()->ledBy(User::factory()->create())->create();
+
+        $this->assertTrue($admin->can('transferClientsFrom', $from));
+        $this->assertTrue($admin->can('transferClient', [$from, $to]));
+    }
+
+    public function test_instructor_moves_a_client_only_between_events_they_lead_both(): void
+    {
+        $lead = User::factory()->create();
+        $from = Event::factory()->ledBy($lead)->create();
+        $alsoLed = Event::factory()->ledBy($lead)->create();
+        $assisted = Event::factory()->ledBy(User::factory()->create(), [$lead])->create();
+        $someoneElses = Event::factory()->ledBy(User::factory()->create())->create();
+
+        $this->assertTrue($lead->can('transferClientsFrom', $from));
+        $this->assertTrue($lead->can('transferClient', [$from, $alsoLed]));
+        $this->assertFalse($lead->can('transferClient', [$from, $assisted]));
+        $this->assertFalse($lead->can('transferClient', [$from, $someoneElses]));
+        $this->assertFalse($lead->can('transferClient', [$assisted, $from]));
+    }
+
+    public function test_assistant_and_other_instructors_do_not_move_clients_out_of_an_event(): void
+    {
+        $assistant = User::factory()->create();
+        $event = Event::factory()->ledBy(User::factory()->create(), [$assistant])->create();
+
+        $this->assertFalse($assistant->can('transferClientsFrom', $event));
+        $this->assertFalse(User::factory()->create()->can('transferClientsFrom', $event));
+    }
 }

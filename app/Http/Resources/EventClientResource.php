@@ -28,6 +28,7 @@ class EventClientResource extends JsonResource
             'status' => $this->status->value,
             'statusLabel' => $this->status->label(),
             'isAttendanceMark' => $this->status->isAttendanceMark(),
+            'isTransferable' => $this->status->isTransferable() && ! $this->client->trashed(),
             'notes' => $this->notes,
             'exercises' => $this->exercises->map(fn (Exercise $exercise): array => ['id' => $exercise->id, 'name' => $exercise->name])->all(),
             'exerciseIdsDoneElsewhere' => $this->resource->exerciseIdsDoneElsewhere,

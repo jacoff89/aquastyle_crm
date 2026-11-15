@@ -12,19 +12,24 @@ const props = defineProps({
     request: { type: Function, required: true },
 });
 
-const emit = defineEmits(['summary', 'mark-done']);
+/** `transferred` — клиента перенесли на другое занятие: в календаре поменялась заполненность обоих. */
+const emit = defineEmits(['summary', 'mark-done', 'transferred']);
 
 const bookings = ref([]);
-const meta = ref({ capacity: props.event.capacity, occupied: 0, canManage: false, canMarkAttendance: false, exercises: [] });
+const meta = ref({ capacity: props.event.capacity, occupied: 0, canManage: false, canMarkAttendance: false, canTransfer: false, exercises: [] });
 const loading = ref(true);
 const message = ref('');
+const success = ref('');
 const savingId = ref(null);
 
-/** Любой ответ сервера со списком клиентов заменяет прежний: показываем то, что сохранено. */
+/**
+ * Любой ответ сервера со списком клиентов заменяет прежний: показываем то, что сохранено.
+ * В сводке `total` — все клиенты в списке, и отменившие тоже: удалить можно только занятие без них.
+ */
 const applyListing = (payload) => {
     bookings.value = payload.data;
     meta.value = payload.meta;
-    emit('summary', { occupied: payload.meta.occupied, capacity: payload.meta.capacity });
+    emit('summary', { occupied: payload.meta.occupied, capacity: payload.meta.capacity, total: payload.data.length });
 };
 
 const failureText = ({ status, data }, fallback) => {
@@ -161,6 +166,108 @@ const saveExercises = async (row) => {
         applyListing(result.data);
     } else {
         message.value = failureText(result, 'Не удалось сохранить упражнения. Попробуйте ещё раз.');
+    }
+};
+
+/* ---------- Перенос клиента на другое занятие ---------- */
+
+/**
+ * Перенести можно того, кто записан или отменил запись, а не того, кто уже отмечен на занятии.
+ * Куда переносить, предлагает сервер: занятия выбранного дня, на которые человеку можно перенести клиента.
+ */
+const canTransfer = (row) => meta.value.canTransfer && row.isTransferable;
+
+const transferring = ref(null);
+const transferDate = ref('');
+const targets = ref([]);
+const targetsLoading = ref(false);
+const targetsFailed = ref(false);
+let targetsId = 0;
+
+const loadTargets = async () => {
+    const id = ++targetsId;
+    const row = transferring.value;
+
+    targets.value = [];
+    targetsFailed.value = false;
+
+    if (row === null || transferDate.value === '') {
+        return;
+    }
+
+    targetsLoading.value = true;
+
+    const result = await props.request('get', `${bookingUrl(row)}/transfer-targets?date=${transferDate.value}`);
+
+    if (id !== targetsId) {
+        return;
+    }
+
+    targetsLoading.value = false;
+
+    if (result.status === 200) {
+        targets.value = result.data.data;
+    } else {
+        targetsFailed.value = true;
+    }
+};
+
+watch(transferDate, loadTargets);
+
+const startTransfer = (row) => {
+    message.value = '';
+    success.value = '';
+    transferring.value = row;
+    const day = props.event.start.split(' ')[0];
+
+    if (transferDate.value === day) {
+        loadTargets();
+    } else {
+        transferDate.value = day;
+    }
+};
+
+const cancelTransfer = () => {
+    transferring.value = null;
+    targetsId += 1;
+    targets.value = [];
+};
+
+/** Ведущий, место и заполненность занятия одной строкой. */
+const targetDetails = (target) =>
+    [
+        target.leadName,
+        target.location,
+        target.capacity === null ? `записано ${target.occupiedPlaces}` : `записано ${target.occupiedPlaces} из ${target.capacity}`,
+    ]
+        .filter(Boolean)
+        .join(' · ');
+
+const targetUnavailable = (target) => {
+    if (target.hasClient) {
+        return 'Уже записан';
+    }
+
+    return target.isFull ? 'Мест нет' : '';
+};
+
+const transfer = async (row, target) => {
+    message.value = '';
+    success.value = '';
+    savingId.value = row.clientId;
+
+    const result = await props.request('post', `${bookingUrl(row)}/transfer`, { target_event_id: target.id });
+
+    savingId.value = null;
+
+    if (result.status === 200) {
+        cancelTransfer();
+        applyListing(result.data);
+        success.value = `Клиент ${row.name} перенесён на занятие «${target.title}» ${target.period}.`;
+        emit('transferred');
+    } else {
+        message.value = failureText(result, 'Не удалось перенести клиента. Попробуйте ещё раз.');
+        loadTargets();
     }
 };
 
@@ -346,6 +453,7 @@ const bookDuplicate = async (duplicate) => {
 };
 
 onBeforeUnmount(() => {
+    targetsId += 1;
     clearTimeout(searchTimer);
     clearTimeout(duplicatesTimer);
 });
@@ -452,6 +560,54 @@ onBeforeUnmount(() => {
                             @click="startExercises(row)"
                         >
                             {{ row.exercises.length ? 'Изменить упражнения' : 'Добавить упражнения' }}
+                        </button>
+
+                        <section
+                            v-if="transferring?.clientId === row.clientId"
+                            class="mt-2 space-y-2 rounded-md border border-line bg-surface p-3"
+                            :aria-label="`Перенос на другое занятие: ${row.name}`"
+                        >
+                            <div class="flex flex-wrap items-center gap-2">
+                                <label :for="`transfer-date-${row.clientId}`" class="text-sm text-ink">Перенести на занятие</label>
+                                <TextInput :id="`transfer-date-${row.clientId}`" v-model="transferDate" type="date" class="max-w-44" />
+                                <button type="button" class="text-sm text-muted hover:text-ink" @click="cancelTransfer">Отмена</button>
+                            </div>
+
+                            <p v-if="targetsLoading" class="text-sm text-muted" role="status">Загрузка…</p>
+                            <p v-else-if="targetsFailed" class="text-sm text-flag">Не удалось загрузить занятия. Выберите день ещё раз.</p>
+                            <p v-else-if="!targets.length" class="text-sm text-muted">
+                                В этот день нет запланированных занятий, на которые можно перенести клиента.
+                            </p>
+                            <ul v-else class="divide-y divide-line rounded-md border border-line bg-white" aria-label="Занятия дня">
+                                <li v-for="target in targets" :key="target.id" class="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+                                    <span class="flex min-w-0 items-start gap-2">
+                                        <span class="mt-1.5 size-2.5 shrink-0 rounded-full" :style="{ backgroundColor: target.color || '#94a3b8' }" aria-hidden="true" />
+                                        <span class="min-w-0">
+                                            <span class="font-medium text-ink">{{ target.period }} {{ target.title }}</span>
+                                            <span class="block text-muted">{{ targetDetails(target) }}</span>
+                                        </span>
+                                    </span>
+                                    <span v-if="targetUnavailable(target)" class="shrink-0 text-muted">{{ targetUnavailable(target) }}</span>
+                                    <button
+                                        v-else
+                                        type="button"
+                                        class="shrink-0 rounded-md border border-line bg-white px-3 py-1.5 font-medium text-ink hover:bg-surface disabled:opacity-60"
+                                        :disabled="savingId === row.clientId"
+                                        :aria-label="`Перенести на ${target.period} ${target.title}`"
+                                        @click="transfer(row, target)"
+                                    >
+                                        Перенести сюда
+                                    </button>
+                                </li>
+                            </ul>
+                        </section>
+                        <button
+                            v-else-if="canTransfer(row)"
+                            type="button"
+                            class="mt-1 block text-sm text-muted underline-offset-4 hover:text-ink hover:underline"
+                            @click="startTransfer(row)"
+                        >
+                            Перенести на другое занятие
                         </button>
                     </div>
 
@@ -586,6 +742,7 @@ onBeforeUnmount(() => {
                 </div>
             </section>
 
+            <p v-if="success" role="status" class="text-sm text-sea-700">{{ success }}</p>
             <p v-if="message" role="alert" class="text-sm text-flag">{{ message }}</p>
         </div>
 

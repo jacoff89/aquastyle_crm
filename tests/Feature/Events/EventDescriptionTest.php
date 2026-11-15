@@ -10,9 +10,11 @@ use App\Events\Bookings\BookingExercisesChanged;
 use App\Events\Bookings\BookingStatusChanged;
 use App\Events\Bookings\BookingUpdated;
 use App\Events\Bookings\ClientBooked;
+use App\Events\Bookings\ClientTransferred;
 use App\Events\CalendarEvents\CalendarEventCancelled;
 use App\Events\CalendarEvents\CalendarEventCompleted;
 use App\Events\CalendarEvents\CalendarEventCreated;
+use App\Events\CalendarEvents\CalendarEventDeleted;
 use App\Events\CalendarEvents\CalendarEventInstructorsChanged;
 use App\Events\CalendarEvents\CalendarEventReopened;
 use App\Events\CalendarEvents\CalendarEventRescheduled;
@@ -111,12 +113,14 @@ class EventDescriptionTest extends TestCase
             CalendarEventCancelled::class => [fn () => new CalendarEventCancelled(Event::factory()->cancelled()->create(), EventStatus::Planned, null)],
             CalendarEventCompleted::class => [fn () => new CalendarEventCompleted(Event::factory()->done()->create(), EventStatus::Planned, null)],
             CalendarEventReopened::class => [fn () => new CalendarEventReopened(Event::factory()->create(), EventStatus::Cancelled, null)],
+            CalendarEventDeleted::class => [fn () => new CalendarEventDeleted(12, '«Бассейн» 12.11 10:00–11:00', route('calendar'), [], null)],
             CalendarEventInstructorsChanged::class => [function () {
                 $lead = User::factory()->create();
 
                 return new CalendarEventInstructorsChanged(Event::factory()->ledBy($lead)->create(), [$lead->id], [], [], null);
             }],
             ClientBooked::class => [fn () => new ClientBooked(EventClient::factory()->create(), null)],
+            ClientTransferred::class => [fn () => new ClientTransferred(EventClient::factory()->create(), 12, '«Бассейн» 12.11 10:00–11:00', [], AttendanceStatus::Booked, null)],
             BookingUpdated::class => [fn () => new BookingUpdated(...self::updated(EventClient::factory()->create(), ['notes' => 'Нужны ласты']), actor: null)],
             BookingStatusChanged::class => [fn () => new BookingStatusChanged(EventClient::factory()->attended()->create(), AttendanceStatus::Booked, null)],
             BookingExercisesChanged::class => [fn () => new BookingExercisesChanged(EventClient::factory()->create(), [Exercise::factory()->create()->id], [], null)],

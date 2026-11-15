@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\DeleteEvent;
 use App\Actions\FindInstructorConflicts;
 use App\Enums\EventStatus;
 use App\Events\CalendarEvents\CalendarEventCreated;
@@ -13,7 +14,10 @@ use App\Http\Requests\Events\UpdateEventRequest;
 use App\Http\Resources\CalendarEventResource;
 use App\Models\Event;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * Creates and edits events from the calendar; moving and resizing an event is an edit too.
@@ -21,6 +25,9 @@ use Illuminate\Support\Facades\DB;
  * When an instructor is already busy at that time, the event is not saved and the answer
  * is 409 with the clashing events. Sending the same data with `confirm_conflicts`
  * saves it anyway.
+ *
+ * Deleting is for administrators and the event's lead instructor, and only while the event
+ * has no clients; otherwise it is cancelled.
  */
 class EventController extends Controller
 {
@@ -43,7 +50,7 @@ class EventController extends Controller
             return $event;
         });
 
-        return CalendarEventResource::make($event->load(['type', 'instructors'])->loadOccupiedPlacesCount())
+        return CalendarEventResource::make($event->load(['type', 'instructors'])->loadOccupiedPlacesCount()->loadCount('bookings'))
             ->response()
             ->setStatusCode(201);
     }
@@ -64,7 +71,16 @@ class EventController extends Controller
             CalendarEventInstructorsChanged::dispatchFor($event, $instructorChanges, $request->user());
         });
 
-        return CalendarEventResource::make($event->load(['type', 'instructors'])->loadOccupiedPlacesCount())->response();
+        return CalendarEventResource::make($event->load(['type', 'instructors'])->loadOccupiedPlacesCount()->loadCount('bookings'))->response();
+    }
+
+    public function destroy(Request $request, Event $event, DeleteEvent $deleteEvent): Response
+    {
+        Gate::authorize('delete', $event);
+
+        $deleteEvent->handle($event, $request->user());
+
+        return response()->noContent();
     }
 
     /**

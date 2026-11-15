@@ -2,12 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Enums\AttendanceStatus;
 use App\Enums\EventStatus;
 use App\Enums\InstructorRole;
 use App\Models\Event;
 use App\Models\EventClient;
 use App\Models\EventType;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -452,6 +454,95 @@ class EventControllerTest extends TestCase
     public function test_unknown_event_is_not_found(): void
     {
         $this->actingAs($this->admin())->patchJson('/events/999', $this->validPayload())->assertNotFound();
+    }
+
+    public function test_guest_cannot_delete_an_event(): void
+    {
+        $event = Event::factory()->ledBy(User::factory()->create())->create();
+
+        $this->deleteJson("/events/{$event->id}")->assertUnauthorized();
+
+        $this->assertModelExists($event);
+    }
+
+    public function test_administrator_deletes_an_event_without_clients_with_its_instructors(): void
+    {
+        $event = Event::factory()->ledBy(User::factory()->create(), [User::factory()->create()])->create();
+
+        $this->actingAs($this->admin())->deleteJson("/events/{$event->id}")->assertNoContent();
+
+        $this->assertModelMissing($event);
+        $this->assertDatabaseCount('event_instructor', 0);
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function everyStatus(): array
+    {
+        return ['planned' => ['planned'], 'done' => ['done'], 'cancelled' => ['cancelled']];
+    }
+
+    #[DataProvider('everyStatus')]
+    public function test_lead_deletes_their_event_without_clients_whatever_its_status(string $status): void
+    {
+        $lead = User::factory()->create();
+        $event = Event::factory()->ledBy($lead)->create(['status' => $status]);
+
+        $this->actingAs($lead)->deleteJson("/events/{$event->id}")->assertNoContent();
+
+        $this->assertModelMissing($event);
+    }
+
+    public function test_assistant_cannot_delete_the_event_403(): void
+    {
+        $assistant = User::factory()->create();
+        $event = Event::factory()->ledBy(User::factory()->create(), [$assistant])->create();
+
+        $this->actingAs($assistant)->deleteJson("/events/{$event->id}")->assertForbidden();
+
+        $this->assertModelExists($event);
+    }
+
+    #[DataProvider('everyAttendanceStatus')]
+    public function test_event_with_a_client_is_not_deleted_whatever_the_clients_status(AttendanceStatus $status): void
+    {
+        $event = Event::factory()->ledBy(User::factory()->create())->create();
+        EventClient::factory()->forEvent($event)->create(['status' => $status]);
+
+        $this->actingAs($this->admin())
+            ->deleteJson("/events/{$event->id}")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['event' => 'На занятии есть клиенты — перенесите их на другое занятие или отмените занятие.']);
+
+        $this->assertModelExists($event);
+        $this->assertDatabaseCount('event_client', 1);
+    }
+
+    /**
+     * @return array<string, array{AttendanceStatus}>
+     */
+    public static function everyAttendanceStatus(): array
+    {
+        return array_combine(
+            array_map(fn (AttendanceStatus $status): string => $status->value, AttendanceStatus::cases()),
+            array_map(fn (AttendanceStatus $status): array => [$status], AttendanceStatus::cases()),
+        );
+    }
+
+    public function test_database_keeps_an_event_with_clients_from_being_deleted(): void
+    {
+        $event = Event::factory()->create();
+        EventClient::factory()->forEvent($event)->cancelled()->create();
+
+        $this->expectException(QueryException::class);
+
+        $event->delete();
+    }
+
+    public function test_deleting_an_unknown_event_is_not_found(): void
+    {
+        $this->actingAs($this->admin())->deleteJson('/events/999')->assertNotFound();
     }
 
     private function admin(): User

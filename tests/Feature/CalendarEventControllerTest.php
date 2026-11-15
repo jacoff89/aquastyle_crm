@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Event;
+use App\Models\EventClient;
 use App\Models\EventType;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -54,6 +55,7 @@ class CalendarEventControllerTest extends TestCase
                 'location' => 'Дельфин',
                 'capacity' => 4,
                 'occupiedPlaces' => 0,
+                'clientsCount' => 0,
                 'status' => 'planned',
                 'statusLabel' => 'Запланировано',
                 'isCancelled' => false,
@@ -67,6 +69,7 @@ class CalendarEventControllerTest extends TestCase
                 ],
                 'isMine' => false,
                 'canUpdate' => true,
+                'canDelete' => false,
             ]]]);
     }
 
@@ -81,6 +84,23 @@ class CalendarEventControllerTest extends TestCase
             $this->actingAs($user)
                 ->getJson('/calendar/events?start=2026-11-04&end=2026-11-04')
                 ->assertJsonPath('data.0.isMine', $isMine);
+        }
+    }
+
+    public function test_event_can_be_deleted_by_its_lead_and_counts_every_client(): void
+    {
+        $lead = User::factory()->create();
+        $assistant = User::factory()->create();
+        $event = Event::factory()->ledBy($lead, [$assistant])->at('2026-11-04 10:00', '2026-11-04 11:00')->create();
+        EventClient::factory()->forEvent($event)->create();
+        EventClient::factory()->forEvent($event)->cancelled()->create();
+
+        foreach ([[$lead, true], [$assistant, false], [User::factory()->admin()->create(), true]] as [$user, $canDelete]) {
+            $this->actingAs($user)
+                ->getJson('/calendar/events?start=2026-11-04&end=2026-11-04')
+                ->assertJsonPath('data.0.canDelete', $canDelete)
+                ->assertJsonPath('data.0.clientsCount', 2)
+                ->assertJsonPath('data.0.occupiedPlaces', 1);
         }
     }
 

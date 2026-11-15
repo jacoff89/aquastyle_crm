@@ -56,6 +56,7 @@ class CalendarEventController extends Controller
         $events = Event::query()
             ->with(['type', 'instructors'])
             ->withOccupiedPlacesCount()
+            ->withCount('bookings')
             ->overlapping($start, $end)
             ->when($request->query('instructor_id') === self::UNASSIGNED, fn (Builder $query) => $query->whereDoesntHave('instructors'))
             ->when($request->filled('instructor_id') && $request->query('instructor_id') !== self::UNASSIGNED, fn (Builder $query) => $query->withInstructor($request->integer('instructor_id')))

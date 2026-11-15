@@ -11,8 +11,11 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * An event as the calendar shows and edits it. Expects `type` and `instructors` to be loaded, and the `occupied_places` count
- * (see Event::withOccupiedPlacesCount()).
+ * An event as the calendar shows and edits it. Expects `type` and `instructors` to be loaded, the `occupied_places` count
+ * (see Event::withOccupiedPlacesCount()) and the `bookings_count` of every client on it, cancelled ones included.
+ *
+ * `canDelete` tells whether the current user may delete the event at all; the event goes only
+ * while `clientsCount` is zero, which the calendar checks again after moving clients out.
  *
  * `isMine` tells whether the current user takes part in the event, as lead or assistant:
  * everyone sees the whole calendar, and the user's own events are marked in it.
@@ -39,6 +42,7 @@ class CalendarEventResource extends JsonResource
             'location' => $this->location,
             'capacity' => $this->capacity,
             'occupiedPlaces' => (int) $this->occupied_places,
+            'clientsCount' => (int) $this->bookings_count,
             'status' => $this->status->value,
             'statusLabel' => $this->status->label(),
             'isCancelled' => $this->status === EventStatus::Cancelled,
@@ -61,6 +65,7 @@ class CalendarEventResource extends JsonResource
                 ->values(),
             'isMine' => $this->instructors->contains('id', $request->user()?->id),
             'canUpdate' => $request->user()?->can('update', $this->resource) ?? false,
+            'canDelete' => $request->user()?->can('delete', $this->resource) ?? false,
         ];
     }
 }

@@ -108,6 +108,22 @@ class Event extends Model
     }
 
     /**
+     * Whether the given user is the event's lead instructor. Uses the loaded instructors
+     * when they are there, and asks the database otherwise.
+     */
+    public function isLedBy(User $user): bool
+    {
+        if ($this->relationLoaded('instructors')) {
+            return $this->leadInstructor()?->is($user) ?? false;
+        }
+
+        return $this->instructors()
+            ->whereKey($user->getKey())
+            ->wherePivot('role', InstructorRole::Lead->value)
+            ->exists();
+    }
+
+    /**
      * Replace the event's instructors with the given lead and assistants.
      * The lead is never also counted as an assistant. Without a lead the event
      * has no instructors at all.
@@ -208,5 +224,18 @@ class Event extends Model
         $id = $instructor instanceof User ? $instructor->getKey() : $instructor;
 
         $query->whereHas('instructors', fn (Builder $query) => $query->whereKey($id));
+    }
+
+    /**
+     * Events the given instructor leads.
+     *
+     * @param  Builder<Event>  $query
+     */
+    #[Scope]
+    protected function ledBy(Builder $query, User $instructor): void
+    {
+        $query->whereHas('instructors', fn (Builder $query) => $query
+            ->whereKey($instructor->getKey())
+            ->where('event_instructor.role', InstructorRole::Lead->value));
     }
 }

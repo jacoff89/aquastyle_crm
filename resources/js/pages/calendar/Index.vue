@@ -291,6 +291,12 @@ const onSaved = (event, isNew) => {
     loadEvents();
 };
 
+const onDeleted = (event) => {
+    closeDialog();
+    notice.value = `Занятие удалено: ${event.title}.`;
+    loadEvents();
+};
+
 /** Новое занятие на ближайший час от выбранного времени, по умолчанию с 10:00. */
 const draftAt = (date, split, withTime) => {
     const start = new Date(date);
@@ -714,6 +720,8 @@ const isEmptyPeriod = computed(() => loaded.value && !loading.value && events.va
             @saved="onSaved"
             @copy="copyExisting"
             @close="closeDialog"
+            @deleted="onDeleted"
+            @clients-transferred="loadEvents"
         />
 
         <dialog

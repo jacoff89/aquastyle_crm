@@ -53,12 +53,15 @@ Route::middleware('auth')->group(function () {
 
     Route::post('events', [EventController::class, 'store'])->name('events.store');
     Route::patch('events/{event}', [EventController::class, 'update'])->name('events.update');
+    Route::delete('events/{event}', [EventController::class, 'destroy'])->name('events.destroy');
 
     Route::get('events/{event}/clients', [EventClientController::class, 'index'])->name('events.clients.index');
     Route::post('events/{event}/clients', [EventClientController::class, 'store'])->name('events.clients.store');
     Route::patch('events/{event}/clients/{client}', [EventClientController::class, 'update'])
         ->withTrashed()
         ->name('events.clients.update');
+    Route::get('events/{event}/clients/{client}/transfer-targets', [EventClientController::class, 'transferTargets'])->name('events.clients.transfer-targets');
+    Route::post('events/{event}/clients/{client}/transfer', [EventClientController::class, 'transfer'])->name('events.clients.transfer');
 
     Route::get('notifications', [NoticeController::class, 'index'])->name('notices.index');
     Route::post('notifications/read-all', [NoticeController::class, 'readAll'])->name('notices.read-all');

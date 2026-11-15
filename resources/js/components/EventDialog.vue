@@ -28,7 +28,8 @@ const props = defineProps({
     request: { type: Function, required: true },
 });
 
-const emit = defineEmits(['saved', 'close', 'copy']);
+/** `deleted` — занятие удалено; `clients-transferred` — клиента перенесли на другое занятие. */
+const emit = defineEmits(['saved', 'close', 'copy', 'deleted', 'clients-transferred']);
 
 const isEditing = computed(() => props.event !== null);
 
@@ -208,6 +209,46 @@ const markDone = async () => {
     await submit(false);
 
     tab.value = 'details';
+};
+
+/* ---------- Удаление занятия ---------- */
+
+/**
+ * Удалить можно только занятие без клиентов, и отменивших тоже. Пока список клиентов не загружен,
+ * их число берётся из календаря; после переноса клиентов — из списка.
+ */
+const canDelete = computed(() => {
+    const total = clientsSummary.value?.total ?? props.event?.clientsCount ?? 0;
+
+    return isEditing.value && props.event.canDelete && total === 0;
+});
+
+const confirmingDelete = ref(false);
+const deleting = ref(false);
+
+const deleteEvent = async () => {
+    failure.value = '';
+    deleting.value = true;
+
+    const result = await props.request('delete', `/events/${props.event.id}`);
+
+    deleting.value = false;
+
+    if (result.status === 204) {
+        emit('deleted', props.event);
+
+        return;
+    }
+
+    confirmingDelete.value = false;
+
+    if (result.status === 403) {
+        failure.value = 'У вас нет прав удалить это занятие.';
+    } else if (result.status === 422 && result.data?.errors) {
+        failure.value = Object.values(result.data.errors)[0][0];
+    } else {
+        failure.value = 'Не удалось удалить занятие. Попробуйте ещё раз.';
+    }
 };
 
 const close = () => emit('close');
@@ -429,11 +470,31 @@ onMounted(() => {
                     <p v-if="failure" role="alert" class="text-sm text-flag">{{ failure }}</p>
                 </div>
 
-                <div class="flex items-center gap-4 border-t border-line px-6 py-4">
+                <div v-if="confirmingDelete" role="alert" class="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line bg-red-50 px-6 py-4">
+                    <p class="text-sm font-medium text-flag">Удалить занятие безвозвратно?</p>
+                    <button
+                        type="button"
+                        class="rounded-md bg-flag px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
+                        :disabled="deleting"
+                        @click="deleteEvent"
+                    >
+                        Удалить
+                    </button>
+                    <button type="button" class="text-sm text-muted hover:text-ink" @click="confirmingDelete = false">Отмена</button>
+                </div>
+                <div v-else class="flex items-center gap-4 border-t border-line px-6 py-4">
                     <PrimaryButton :processing="form.processing">
                         {{ isEditing ? 'Сохранить' : 'Создать занятие' }}
                     </PrimaryButton>
                     <button type="button" class="text-sm text-muted hover:text-ink" @click="close">Отмена</button>
+                    <button
+                        v-if="canDelete"
+                        type="button"
+                        class="ml-auto text-sm font-medium text-flag underline-offset-4 hover:underline"
+                        @click="confirmingDelete = true"
+                    >
+                        Удалить занятие
+                    </button>
                 </div>
             </form>
 
@@ -448,6 +509,7 @@ onMounted(() => {
                 :request="request"
                 @summary="clientsSummary = $event"
                 @mark-done="markDone"
+                @transferred="emit('clients-transferred')"
             />
         </div>
     </dialog>

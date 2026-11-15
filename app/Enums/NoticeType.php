@@ -21,8 +21,10 @@ enum NoticeType: string
     case CalendarEventCancelled = 'CalendarEventCancelled';
     case CalendarEventCompleted = 'CalendarEventCompleted';
     case CalendarEventReopened = 'CalendarEventReopened';
+    case CalendarEventDeleted = 'CalendarEventDeleted';
 
     case ClientBooked = 'ClientBooked';
+    case ClientTransferred = 'ClientTransferred';
     case BookingStatusChanged = 'BookingStatusChanged';
     case BookingUpdated = 'BookingUpdated';
     case BookingExercisesChanged = 'BookingExercisesChanged';
@@ -71,7 +73,9 @@ enum NoticeType: string
             self::CalendarEventCancelled => 'Занятие отменено',
             self::CalendarEventCompleted => 'Занятие проведено',
             self::CalendarEventReopened => 'Занятие снова запланировано',
+            self::CalendarEventDeleted => 'Занятие удалено',
             self::ClientBooked => 'Клиент записан на занятие',
+            self::ClientTransferred => 'Клиент перенесён на другое занятие',
             self::BookingStatusChanged => 'Изменён статус клиента на занятии',
             self::BookingUpdated => 'Изменена запись клиента',
             self::BookingExercisesChanged => 'Изменены упражнения клиента',
@@ -113,8 +117,8 @@ enum NoticeType: string
         return match ($this) {
             self::CalendarEventCreated, self::CalendarEventRescheduled, self::CalendarEventUpdated,
             self::CalendarEventInstructorsChanged, self::CalendarEventCancelled, self::CalendarEventCompleted,
-            self::CalendarEventReopened => 'Занятия',
-            self::ClientBooked, self::BookingStatusChanged, self::BookingUpdated, self::BookingExercisesChanged => 'Клиенты на занятиях',
+            self::CalendarEventReopened, self::CalendarEventDeleted => 'Занятия',
+            self::ClientBooked, self::ClientTransferred, self::BookingStatusChanged, self::BookingUpdated, self::BookingExercisesChanged => 'Клиенты на занятиях',
             self::EquipmentCreated, self::EquipmentAssigned, self::EquipmentStatusChanged, self::EquipmentUpdated,
             self::EquipmentCategoryCreated, self::EquipmentCategoryUpdated => 'Снаряжение',
             self::UserCreated, self::UserUpdated, self::UserActivated, self::UserDeactivated,

@@ -48,6 +48,15 @@ enum AttendanceStatus: string
     }
 
     /**
+     * Whether a client with this status can be moved to another event. A client who came
+     * or did not come stays where it happened.
+     */
+    public function isTransferable(): bool
+    {
+        return ! $this->isAttendanceMark();
+    }
+
+    /**
      * Values of the statuses that take a place, for queries.
      *
      * @return list<string>

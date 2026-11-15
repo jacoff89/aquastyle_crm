@@ -3,6 +3,7 @@
 namespace Tests\Feature\Events;
 
 use App\Enums\InstructorRole;
+use App\Events\CalendarEvents\CalendarEventCreated;
 use App\Models\Client;
 use App\Models\Equipment;
 use App\Models\Event;
@@ -11,6 +12,7 @@ use App\Models\EventType;
 use App\Models\Notice;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -236,5 +238,57 @@ class NoticeCreationTest extends TestCase
             'client' => "Client#{$client->id}",
             'changes' => ['first_name' => ['old' => 'Пётр', 'new' => 'Павел']],
         ], Notice::sole()->data);
+    }
+
+    public function test_moving_a_client_concerns_the_instructors_of_both_events(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $firstLead = User::factory()->create();
+        $secondLead = User::factory()->create();
+        $assistant = User::factory()->create();
+        $from = Event::factory()->at('2026-11-12 10:00', '2026-11-12 11:00')->ledBy($firstLead)->create(['title' => 'Бассейн']);
+        $to = Event::factory()->at('2026-11-13 12:00', '2026-11-13 13:00')->ledBy($secondLead, [$assistant])->create(['title' => 'Открытая вода']);
+        $client = Client::factory()->create(['last_name' => 'Иванов', 'first_name' => 'Пётр', 'middle_name' => null]);
+        EventClient::factory()->forEvent($from)->forClient($client)->create();
+        Notice::query()->delete();
+
+        $this->actingAs($admin)->postJson("/events/{$from->id}/clients/{$client->id}/transfer", ['target_event_id' => $to->id])->assertOk();
+
+        $notice = Notice::sole();
+        $this->assertSame('ClientTransferred', $notice->type);
+        $this->assertSame('Клиент Иванов Пётр перенесён с занятия «Бассейн» 12.11 10:00–11:00 на «Открытая вода» 13.11 12:00–13:00', $notice->message);
+        $this->assertSame(route('calendar', ['view' => 'day', 'date' => '2026-11-13']), $notice->url);
+        $this->assertSame([$firstLead->id, $secondLead->id, $assistant->id], $this->recipientIds($notice));
+    }
+
+    public function test_deleting_an_event_gives_a_notice_for_its_instructors_though_the_event_is_gone(): void
+    {
+        $lead = User::factory()->create();
+        $assistant = User::factory()->create();
+        $event = Event::factory()->at('2026-11-12 10:00', '2026-11-12 11:00')->ledBy($lead, [$assistant])->create(['title' => 'Бассейн']);
+        Notice::query()->delete();
+
+        $this->actingAs($lead)->deleteJson("/events/{$event->id}")->assertNoContent();
+
+        $notice = Notice::sole();
+        $this->assertSame('CalendarEventDeleted', $notice->type);
+        $this->assertSame('Удалено занятие «Бассейн» 12.11 10:00–11:00', $notice->message);
+        $this->assertSame(route('calendar', ['view' => 'day', 'date' => '2026-11-12']), $notice->url);
+        $this->assertSame([$lead->id, $assistant->id], $this->recipientIds($notice));
+        $this->assertSame(0, Notice::unreadCountFor($lead));
+    }
+
+    public function test_a_change_to_an_event_deleted_before_the_queue_ran_is_dropped_without_failing(): void
+    {
+        config(['queue.default' => 'database']);
+        $event = Event::factory()->ledBy(User::factory()->create())->create();
+        CalendarEventCreated::dispatch($event, null);
+        $event->delete();
+
+        $this->artisan('queue:work', ['--once' => true])->assertSuccessful();
+
+        $this->assertSame(0, DB::table('jobs')->count());
+        $this->assertSame(0, DB::table('failed_jobs')->count());
+        $this->assertSame(0, Notice::count());
     }
 }

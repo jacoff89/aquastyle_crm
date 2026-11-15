@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Notifications\NoticeInTelegram;
 use App\Notifications\Telegram\TelegramBot;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Queue\Attributes\DeleteWhenMissingModels;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 
@@ -20,7 +21,11 @@ use Illuminate\Support\Facades\Notification;
  * The event's models are loaded fresh by then, which is what the description should show anyway.
  *
  * Once the notice is saved, it goes to Telegram to those who chose its type, each through a job of its own.
+ *
+ * An event can be deleted before its earlier changes reach the queue; the notices of those
+ * changes are dropped then, the deletion has a notice of its own.
  */
+#[DeleteWhenMissingModels]
 class CreateNotice implements ShouldQueue
 {
     public function __construct(private TelegramBot $telegram) {}
