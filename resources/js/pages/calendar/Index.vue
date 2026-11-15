@@ -237,7 +237,7 @@ const calendarEvents = computed(() =>
             start: event.start,
             end: event.end,
             title: event.title,
-            class: [event.isCancelled && 'is-cancelled', event.isMine && 'is-mine'].filter(Boolean).join(' '),
+            class: [event.isCancelled && 'is-cancelled', event.status === 'done' && 'is-done', event.isMine && 'is-mine'].filter(Boolean).join(' '),
             draggable: editable,
             resizable: editable,
             deletable: false,
@@ -822,8 +822,12 @@ const isEmptyPeriod = computed(() => loaded.value && !loading.value && events.va
     box-shadow: inset 0 0 0 1px var(--color-sea-600);
 }
 
-.calendar .vuecal__event.is-cancelled .event-card {
+.calendar .vuecal__event.is-cancelled .event-card,
+.calendar .vuecal__event.is-done .event-card {
     opacity: 0.45;
+}
+
+.calendar .vuecal__event.is-cancelled .event-card {
     text-decoration: line-through;
 }
 
