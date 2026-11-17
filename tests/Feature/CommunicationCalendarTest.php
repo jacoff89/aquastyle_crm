@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\CommunicationChannel;
+use App\Enums\CommunicationStatus;
 use App\Models\Client;
 use App\Models\Communication;
 use App\Models\User;
@@ -51,8 +52,9 @@ class CommunicationCalendarTest extends TestCase
                 ->component('communications/Index')
                 ->where('initialDate', '2026-11-04')
                 ->where('initialView', 'month')
-                ->where('initialFilters', ['creatorId' => null, 'channel' => null])
-                ->has('channels', count(CommunicationChannel::cases())));
+                ->where('initialFilters', ['creatorId' => null, 'channel' => null, 'status' => null])
+                ->has('channels', count(CommunicationChannel::cases()))
+                ->where('statuses', CommunicationStatus::options()));
     }
 
     public function test_page_lists_every_user_as_a_possible_creator_active_first(): void
@@ -75,11 +77,11 @@ class CommunicationCalendarTest extends TestCase
         $admin = User::factory()->admin()->create();
 
         $this->actingAs($admin)
-            ->get("/communications?view=week&date=2026-12-10&creator_id={$admin->id}&channel=phone")
+            ->get("/communications?view=week&date=2026-12-10&creator_id={$admin->id}&channel=phone&status=planned")
             ->assertInertia(fn (Assert $page) => $page
                 ->where('initialDate', '2026-12-10')
                 ->where('initialView', 'week')
-                ->where('initialFilters', ['creatorId' => $admin->id, 'channel' => 'phone']));
+                ->where('initialFilters', ['creatorId' => $admin->id, 'channel' => 'phone', 'status' => 'planned']));
     }
 
     public function test_stale_or_mistyped_address_opens_without_those_parts(): void
@@ -87,11 +89,11 @@ class CommunicationCalendarTest extends TestCase
         Carbon::setTestNow('2026-11-04 09:00');
 
         $this->actingAs(User::factory()->admin()->create())
-            ->get('/communications?view=year&date=2026-02-30&creator_id=999&channel=fax')
+            ->get('/communications?view=year&date=2026-02-30&creator_id=999&channel=fax&status=lost')
             ->assertInertia(fn (Assert $page) => $page
                 ->where('initialDate', '2026-11-04')
                 ->where('initialView', 'month')
-                ->where('initialFilters', ['creatorId' => null, 'channel' => null]));
+                ->where('initialFilters', ['creatorId' => null, 'channel' => null, 'status' => null]));
     }
 
     public function test_returns_communications_of_the_requested_days(): void
@@ -178,6 +180,22 @@ class CommunicationCalendarTest extends TestCase
             ->assertJsonPath('data.0.notes', 'Инструктор, звонок');
     }
 
+    public function test_filters_by_status(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $this->communication($admin, '2026-11-03 10:00', ['notes' => 'Выполнена']);
+        $this->communication($admin, '2026-11-03 11:00', ['status' => CommunicationStatus::Planned, 'notes' => 'Планируется']);
+
+        $this->actingAs($admin)
+            ->getJson('/communications/events?start=2026-11-02&end=2026-11-08&status=planned')
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.notes', 'Планируется');
+
+        $this->getJson('/communications/events?start=2026-11-02&end=2026-11-08&status=completed')
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.notes', 'Выполнена');
+    }
+
     public function test_communications_of_deleted_clients_are_left_out(): void
     {
         $admin = User::factory()->admin()->create();
@@ -199,5 +217,6 @@ class CommunicationCalendarTest extends TestCase
         $this->getJson('/communications/events?start=2026-01-01&end=2026-06-01')->assertUnprocessable();
         $this->getJson('/communications/events?start=2026-11-02&end=2026-11-08&creator_id=999')->assertUnprocessable();
         $this->getJson('/communications/events?start=2026-11-02&end=2026-11-08&channel=fax')->assertUnprocessable();
+        $this->getJson('/communications/events?start=2026-11-02&end=2026-11-08&status=lost')->assertUnprocessable();
     }
 }

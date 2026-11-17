@@ -12,12 +12,14 @@ import AppLayout from '../../layouts/AppLayout.vue';
 const props = defineProps({
     initialDate: { type: String, required: true },
     initialView: { type: String, required: true },
-    /** Фильтры из адреса страницы: { creatorId, channel }, null — без фильтра. */
+    /** Фильтры из адреса страницы: { creatorId, channel, status }, null — без фильтра. */
     initialFilters: { type: Object, required: true },
     /** Все пользователи, которые могли записать коммуникацию: { id, name, isActive }. */
     creators: { type: Array, required: true },
     /** Способы связи: { value, label }. */
     channels: { type: Array, required: true },
+    /** Статусы коммуникации: { value, label }. */
+    statuses: { type: Array, required: true },
 });
 
 /** Цвет коммуникации, у создателя которой цвета нет. */
@@ -33,8 +35,9 @@ const notice = ref('');
 /** Пустая строка — «все»: так её отдаёт и принимает выпадающий список. */
 const creatorFilter = ref(props.initialFilters.creatorId ?? '');
 const channelFilter = ref(props.initialFilters.channel ?? '');
+const statusFilter = ref(props.initialFilters.status ?? '');
 
-const hasFilters = computed(() => creatorFilter.value !== '' || channelFilter.value !== '');
+const hasFilters = computed(() => creatorFilter.value !== '' || channelFilter.value !== '' || statusFilter.value !== '');
 
 /* ---------- Загрузка коммуникаций за видимый период ---------- */
 
@@ -56,6 +59,9 @@ const loadCommunications = async () => {
     }
     if (channelFilter.value !== '') {
         query.set('channel', channelFilter.value);
+    }
+    if (statusFilter.value !== '') {
+        query.set('status', statusFilter.value);
     }
 
     const { status, data } = await request('get', `/communications/events?${query}`);
@@ -85,6 +91,7 @@ const rememberPosition = () => {
     rememberInAddress(position.view, position.date, {
         creator_id: creatorFilter.value,
         channel: channelFilter.value,
+        status: statusFilter.value,
     });
 };
 
@@ -99,7 +106,7 @@ const onViewChange = (view) => {
     loadCommunications();
 };
 
-watch([creatorFilter, channelFilter], () => {
+watch([creatorFilter, channelFilter, statusFilter], () => {
     rememberPosition();
     loadCommunications();
 });
@@ -107,6 +114,7 @@ watch([creatorFilter, channelFilter], () => {
 const resetFilters = () => {
     creatorFilter.value = '';
     channelFilter.value = '';
+    statusFilter.value = '';
 };
 
 /* ---------- Отметки: выполненные и просроченные ---------- */
@@ -194,11 +202,20 @@ const isEmptyPeriod = computed(() => loaded.value && !loading.value && communica
                 </SelectInput>
             </FormField>
 
-            <FormField id="filter-channel" label="Тип" class="w-full sm:w-56">
+            <FormField id="filter-channel" label="Способ связи" class="w-full sm:w-56">
                 <SelectInput id="filter-channel" v-model="channelFilter">
-                    <option value="">Все типы</option>
+                    <option value="">Все способы</option>
                     <option v-for="channel in channels" :key="channel.value" :value="channel.value">
                         {{ channel.label }}
+                    </option>
+                </SelectInput>
+            </FormField>
+
+            <FormField id="filter-status" label="Статус" class="w-full sm:w-56">
+                <SelectInput id="filter-status" v-model="statusFilter">
+                    <option value="">Все статусы</option>
+                    <option v-for="status in statuses" :key="status.value" :value="status.value">
+                        {{ status.label }}
                     </option>
                 </SelectInput>
             </FormField>

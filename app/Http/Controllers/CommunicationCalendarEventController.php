@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\CommunicationChannel;
+use App\Enums\CommunicationStatus;
 use App\Http\Resources\CalendarCommunicationResource;
 use App\Models\Communication;
 use App\Models\User;
@@ -16,7 +17,7 @@ use Illuminate\Validation\Rule;
 /**
  * Communications for the period the communications calendar shows: every one whose
  * time falls on the days from `start` to `end`, both inclusive. Narrowed to one author
- * with `creator_id` and to one channel with `channel`.
+ * with `creator_id`, to one channel with `channel` and to one status with `status`.
  *
  * Communications of deleted clients are left out: their card can't be opened from the calendar.
  */
@@ -33,6 +34,7 @@ class CommunicationCalendarEventController extends Controller
             'end' => ['required', 'date_format:Y-m-d', 'after_or_equal:start'],
             'creator_id' => ['nullable', 'integer', Rule::exists(User::class, 'id')],
             'channel' => ['nullable', Rule::enum(CommunicationChannel::class)],
+            'status' => ['nullable', Rule::enum(CommunicationStatus::class)],
         ]);
 
         $start = Carbon::createFromFormat('Y-m-d', $validated['start'])->startOfDay();
@@ -48,6 +50,7 @@ class CommunicationCalendarEventController extends Controller
             ->occurredBetween($start, $end)
             ->when($request->filled('creator_id'), fn (Builder $query) => $query->where('created_by', $request->integer('creator_id')))
             ->when($request->filled('channel'), fn (Builder $query) => $query->where('channel', $request->enum('channel', CommunicationChannel::class)))
+            ->when($request->filled('status'), fn (Builder $query) => $query->where('status', $request->enum('status', CommunicationStatus::class)))
             ->orderBy('occurred_at')
             ->orderBy('id')
             ->get();
