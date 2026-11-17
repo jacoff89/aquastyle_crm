@@ -296,6 +296,7 @@ class ClientController extends Controller
             'status' => $event->pivot->status->value,
             'statusLabel' => $event->pivot->status->label(),
             'notes' => $event->pivot->notes,
+            'eventNotes' => $event->notes,
             'exercises' => $event->pivot->exercises->pluck('name')->all(),
             'calendarUrl' => route('calendar', ['view' => 'day', 'date' => $event->starts_at->format('Y-m-d')]),
         ];

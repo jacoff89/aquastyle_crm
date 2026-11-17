@@ -2,7 +2,7 @@
 import { Link } from '@inertiajs/vue3';
 
 defineProps({
-    /** Занятия клиента: { eventId, title, dateLabel, timeLabel, location, leadInstructor, isEventCancelled, status, statusLabel, notes, exercises, calendarUrl }. */
+    /** Занятия клиента: { eventId, title, dateLabel, timeLabel, location, leadInstructor, isEventCancelled, status, statusLabel, notes, eventNotes, exercises, calendarUrl }. */
     rows: { type: Array, required: true },
     emptyTitle: { type: String, required: true },
     emptyText: { type: String, required: true },
@@ -27,7 +27,12 @@ const statusClasses = {
                     {{ row.dateLabel }}, {{ row.timeLabel }}<span v-if="row.location"> · {{ row.location }}</span>
                 </p>
                 <p v-if="row.leadInstructor" class="text-muted">Ведущий: {{ row.leadInstructor }}</p>
-                <p v-if="row.notes" class="mt-1 whitespace-pre-line text-ink">{{ row.notes }}</p>
+                <p v-if="row.eventNotes" class="mt-1 whitespace-pre-line text-ink">
+                    <span class="text-muted">Заметка к занятию:</span> {{ row.eventNotes }}
+                </p>
+                <p v-if="row.notes" class="mt-1 whitespace-pre-line text-ink">
+                    <span class="text-muted">Заметка о клиенте:</span> {{ row.notes }}
+                </p>
                 <ul v-if="row.exercises.length" class="mt-1.5 flex flex-wrap gap-1.5" aria-label="Упражнения">
                     <li v-for="exercise in row.exercises" :key="exercise" class="rounded-full bg-sea-50 px-2.5 py-0.5 text-xs font-medium text-sea-700">
                         {{ exercise }}
