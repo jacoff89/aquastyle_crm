@@ -1,6 +1,6 @@
 name: aquastyle_crm
 
-# общее для сайта и воркера очереди: один образ, один .env, один storage
+# общее для сайта, воркера очереди и планировщика: один образ, один .env, один storage
 x-app: &app
   image: ${DOCKER_REPO:?DOCKER_REPO не задан}:${IMAGE_TAG:?IMAGE_TAG не задан}
   extra_hosts:
@@ -28,3 +28,9 @@ services:
     command: ["php", "artisan", "queue:work", "--sleep=3", "--tries=3", "--timeout=60", "--max-time=3600"]
     # при остановке воркер получает SIGTERM и доделывает текущую задачу — даём ему на это время
     stop_grace_period: 70s
+
+  scheduler:
+    <<: *app
+    container_name: aquastyle_crm-scheduler
+    # раз в минуту запускает задания из routes/console.php (напоминания о днях рождения и т.д.)
+    command: ["php", "artisan", "schedule:work"]

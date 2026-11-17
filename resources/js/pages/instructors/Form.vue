@@ -20,6 +20,7 @@ const form = useForm({
     last_name: props.instructor?.lastName ?? '',
     email: props.instructor?.email ?? '',
     phone: formatPhone(props.instructor?.phone),
+    birthday: props.instructor?.birthday ?? '',
     color: props.instructor?.color ?? '#0891b2',
     is_active: props.instructor?.isActive ?? true,
     notes: props.instructor?.notes ?? '',
@@ -70,6 +71,10 @@ const submit = () => {
                         <TextInput id="phone" v-model="form.phone" type="tel" autocomplete="off" :invalid="Boolean(form.errors.phone)" />
                     </FormField>
                 </div>
+
+                <FormField id="birthday" label="День рождения" hint="Коллеги получат напоминание в Telegram за 3 дня." :error="form.errors.birthday">
+                    <TextInput id="birthday" v-model="form.birthday" type="date" autocomplete="off" :invalid="Boolean(form.errors.birthday)" />
+                </FormField>
 
                 <FormField id="color" label="Цвет в календаре" hint="Этим цветом будут отмечены занятия инструктора." :error="form.errors.color">
                     <ColorPicker id="color" v-model="form.color" :invalid="Boolean(form.errors.color)" />

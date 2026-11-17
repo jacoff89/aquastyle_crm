@@ -27,6 +27,7 @@ class UserUpdated extends AbstractDomainEvent
         'last_name' => 'фамилия',
         'email' => 'email',
         'phone' => 'телефон',
+        'birthday' => 'день рождения',
         'color' => 'цвет в календаре',
         'notes' => 'заметки',
     ];

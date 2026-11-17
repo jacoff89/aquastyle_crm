@@ -25,6 +25,7 @@ class ProfileController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'phone' => $user->phone,
+                'birthday' => $user->birthday?->toDateString(),
                 'role' => $user->rolesLabel(),
             ],
             'schedule' => $user->isInstructor() ? $schedule->handle($user, $user->preferredScheduleRange()) : null,
@@ -38,6 +39,7 @@ class ProfileController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:32', new ValidPhone],
+            'birthday' => ['nullable', 'date_format:Y-m-d', 'after:1900-01-01', 'before:today'],
         ]);
 
         $request->user()->update($validated);

@@ -8,6 +8,7 @@ use App\Enums\Role;
 use App\Enums\ScheduleRange;
 use App\Enums\TelegramNoticeScope;
 use App\Notifications\ResetPasswordNotification;
+use Carbon\CarbonInterface;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -23,7 +24,7 @@ use Illuminate\Notifications\Notifiable;
  * An account. A user holds one or more roles: an administrator manages the system,
  * an instructor teaches and appears in the calendar. One person can be both.
  */
-#[Fillable(['name', 'last_name', 'email', 'password', 'phone', 'roles', 'is_active', 'color', 'notes'])]
+#[Fillable(['name', 'last_name', 'email', 'password', 'phone', 'birthday', 'roles', 'is_active', 'color', 'notes'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -41,6 +42,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'phone' => PhoneNumber::class,
+            'birthday' => 'date',
             'roles' => AsEnumCollection::of(Role::class),
             'is_active' => 'boolean',
             'schedule_range' => ScheduleRange::class,
@@ -85,6 +87,23 @@ class User extends Authenticatable
     public function scopeInstructors(Builder $query): void
     {
         $query->whereJsonContains('roles', Role::Instructor->value);
+    }
+
+    /**
+     * Whether the birthday falls on the given day, whatever the year. Someone born on 29 February
+     * celebrates on 28 February in a year that has no 29th.
+     */
+    public function hasBirthdayOn(CarbonInterface $day): bool
+    {
+        if ($this->birthday === null) {
+            return false;
+        }
+
+        if ($this->birthday->month === 2 && $this->birthday->day === 29 && ! $day->isLeapYear()) {
+            return $day->month === 2 && $day->day === 28;
+        }
+
+        return $this->birthday->month === $day->month && $this->birthday->day === $day->day;
     }
 
     /**

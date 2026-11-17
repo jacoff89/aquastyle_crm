@@ -25,6 +25,7 @@ class StoreInstructorRequest extends FormRequest
             'last_name' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class)],
             'phone' => ['nullable', 'string', 'max:32', new ValidPhone],
+            'birthday' => ['nullable', 'date_format:Y-m-d', 'after:1900-01-01', 'before:today'],
             'color' => ['required', 'string', 'regex:/^#[0-9a-f]{6}$/'],
             'is_active' => ['boolean'],
             'notes' => ['nullable', 'string', 'max:2000'],

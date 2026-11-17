@@ -4,6 +4,9 @@ import InstructorSchedule from '../../components/InstructorSchedule.vue';
 import AppLayout from '../../layouts/AppLayout.vue';
 import { formatPhone } from '../../phone.js';
 
+const formatBirthday = (date) =>
+    date ? new Date(`${date}T00:00:00`).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
+
 defineProps({
     instructor: { type: Object, required: true },
     schedule: { type: Array, required: true },
@@ -44,6 +47,10 @@ defineProps({
                     <div>
                         <dt class="text-muted">Телефон</dt>
                         <dd class="mt-0.5 text-ink">{{ formatPhone(instructor.phone) || '—' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-muted">День рождения</dt>
+                        <dd class="mt-0.5 text-ink">{{ formatBirthday(instructor.birthday) }}</dd>
                     </div>
                     <div>
                         <dt class="text-muted">Цвет в календаре</dt>

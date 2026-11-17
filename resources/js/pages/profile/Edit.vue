@@ -18,6 +18,7 @@ const props = defineProps({
 const profileForm = useForm({
     name: props.profile.name,
     phone: formatPhone(props.profile.phone),
+    birthday: props.profile.birthday ?? '',
 });
 
 const passwordForm = useForm({
@@ -64,6 +65,16 @@ const changePassword = () => {
                             type="tel"
                             autocomplete="tel"
                             :invalid="Boolean(profileForm.errors.phone)"
+                        />
+                    </FormField>
+
+                    <FormField id="birthday" label="День рождения" hint="Коллеги-инструкторы получат напоминание в Telegram." :error="profileForm.errors.birthday">
+                        <TextInput
+                            id="birthday"
+                            v-model="profileForm.birthday"
+                            type="date"
+                            autocomplete="bday"
+                            :invalid="Boolean(profileForm.errors.birthday)"
                         />
                     </FormField>
 
