@@ -16,6 +16,7 @@ const props = defineProps({
     historyTotal: { type: Number, required: true },
     communications: { type: Array, required: true },
     communicationChannels: { type: Array, required: true },
+    communicationStatuses: { type: Array, required: true },
 });
 
 const destroy = () => {
@@ -149,7 +150,7 @@ const destroy = () => {
             <section aria-labelledby="communications-heading">
                 <h2 id="communications-heading" class="text-lg font-semibold">Коммуникации</h2>
                 <div class="mt-3">
-                    <ClientCommunications :client-id="client.id" :communications="communications" :channels="communicationChannels" />
+                    <ClientCommunications :client-id="client.id" :communications="communications" :channels="communicationChannels" :statuses="communicationStatuses" />
                 </div>
             </section>
 

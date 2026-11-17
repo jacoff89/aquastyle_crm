@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\AttendanceStatus;
 use App\Enums\CommunicationChannel;
+use App\Enums\CommunicationStatus;
 use App\Enums\EventStatus;
 use App\Events\Clients\ClientCertificationsChanged;
 use App\Events\Clients\ClientCreated;
@@ -160,6 +161,7 @@ class ClientController extends Controller
             'communications' => $client->communications()->with('creator')->latestFirst()->get()
                 ->map(fn (Communication $communication): array => $this->communicationRow($communication, $request->user()))->values(),
             'communicationChannels' => CommunicationChannel::options(),
+            'communicationStatuses' => CommunicationStatus::options(),
         ]);
     }
 
@@ -354,6 +356,8 @@ class ClientController extends Controller
             'id' => $communication->id,
             'channel' => $communication->channel->value,
             'channelLabel' => $communication->channel->label(),
+            'status' => $communication->status->value,
+            'statusLabel' => $communication->status->label(),
             'occurredAt' => $communication->occurred_at->format('Y-m-d\TH:i'),
             'occurredAtLabel' => $communication->occurred_at->format('d.m.Y H:i'),
             'notes' => $communication->notes,

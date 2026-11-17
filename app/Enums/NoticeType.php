@@ -50,6 +50,7 @@ enum NoticeType: string
     case CommunicationCreated = 'CommunicationCreated';
     case CommunicationUpdated = 'CommunicationUpdated';
     case CommunicationDeleted = 'CommunicationDeleted';
+    case CommunicationDue = 'CommunicationDue';
 
     case EventTypeCreated = 'EventTypeCreated';
     case EventTypeUpdated = 'EventTypeUpdated';
@@ -105,6 +106,7 @@ enum NoticeType: string
             self::CommunicationCreated => 'Записан контакт с клиентом',
             self::CommunicationUpdated => 'Изменён контакт с клиентом',
             self::CommunicationDeleted => 'Удалён контакт с клиентом',
+            self::CommunicationDue => 'Подошло время запланированного контакта',
             self::EventTypeCreated => 'Новый тип занятий',
             self::EventTypeUpdated => 'Изменён тип занятий',
             self::EventTypesReordered => 'Изменён порядок типов занятий',
@@ -138,7 +140,7 @@ enum NoticeType: string
             self::UserCreated, self::UserUpdated, self::UserActivated, self::UserDeactivated,
             self::UserRolesChanged, self::UserPasswordChanged => 'Учётные записи',
             self::ClientCreated, self::ClientUpdated, self::ClientDeleted, self::ClientCertificationsChanged,
-            self::CommunicationCreated, self::CommunicationUpdated, self::CommunicationDeleted => 'Клиенты',
+            self::CommunicationCreated, self::CommunicationUpdated, self::CommunicationDeleted, self::CommunicationDue => 'Клиенты',
             self::EventTypeCreated, self::EventTypeUpdated, self::EventTypesReordered, self::ExerciseCreated,
             self::ExerciseUpdated, self::ExerciseEventTypesChanged, self::ExercisesReordered,
             self::LocationCreated, self::LocationUpdated,

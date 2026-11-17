@@ -145,11 +145,11 @@ class ClientEventsTest extends TestCase
         $user = User::factory()->create();
         Event::fake([CommunicationCreated::class, CommunicationUpdated::class, CommunicationDeleted::class]);
 
-        $this->actingAs($user)->post("/clients/{$client->id}/communications", ['channel' => 'phone', 'occurred_at' => '2026-11-03T14:30', 'notes' => 'Перезвонить'])
+        $this->actingAs($user)->post("/clients/{$client->id}/communications", ['channel' => 'phone', 'status' => 'planned', 'occurred_at' => '2026-11-03T14:30', 'notes' => 'Перезвонить'])
             ->assertSessionHasNoErrors();
         $communication = Communication::sole();
 
-        $this->patch("/communications/{$communication->id}", ['channel' => 'messenger', 'occurred_at' => '2026-11-03T14:30', 'notes' => 'Перезвонить'])
+        $this->patch("/communications/{$communication->id}", ['channel' => 'messenger', 'status' => 'planned', 'occurred_at' => '2026-11-03T14:30', 'notes' => 'Перезвонить'])
             ->assertSessionHasNoErrors();
         $this->delete("/communications/{$communication->id}")->assertRedirect();
 

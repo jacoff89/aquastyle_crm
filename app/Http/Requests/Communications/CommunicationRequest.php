@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Communications;
 
 use App\Enums\CommunicationChannel;
+use App\Enums\CommunicationStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -15,6 +16,7 @@ abstract class CommunicationRequest extends FormRequest
     {
         return [
             'channel' => ['required', Rule::enum(CommunicationChannel::class)],
+            'status' => ['required', Rule::enum(CommunicationStatus::class)],
             'occurred_at' => ['required', 'date_format:Y-m-d\TH:i'],
             'notes' => ['required', 'string', 'max:5000'],
         ];
@@ -27,6 +29,7 @@ abstract class CommunicationRequest extends FormRequest
     {
         return [
             'channel' => 'Способ связи',
+            'status' => 'Статус',
             'occurred_at' => 'Дата и время',
             'notes' => 'Содержание',
         ];

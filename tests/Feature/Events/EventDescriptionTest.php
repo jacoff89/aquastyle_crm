@@ -26,6 +26,7 @@ use App\Events\Clients\ClientDeleted;
 use App\Events\Clients\ClientUpdated;
 use App\Events\Communications\CommunicationCreated;
 use App\Events\Communications\CommunicationDeleted;
+use App\Events\Communications\CommunicationDue;
 use App\Events\Communications\CommunicationUpdated;
 use App\Events\DomainEvent;
 use App\Events\Equipment\EquipmentAssigned;
@@ -112,6 +113,7 @@ class EventDescriptionTest extends TestCase
             ClientCertificationsChanged::class => [fn () => new ClientCertificationsChanged(Client::factory()->create(), [Certification::factory()->create()->id], [Certification::factory()->create()->id], null)],
             CommunicationCreated::class => [fn () => new CommunicationCreated(Communication::factory()->create(), null)],
             CommunicationUpdated::class => [fn () => new CommunicationUpdated(...self::updated(Communication::factory()->create(), ['notes' => 'Перезвонить']), actor: null)],
+            CommunicationDue::class => [fn () => new CommunicationDue(Communication::factory()->planned()->create())],
             CommunicationDeleted::class => [function () {
                 $communication = Communication::factory()->create();
 

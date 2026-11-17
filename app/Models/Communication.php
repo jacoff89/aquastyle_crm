@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\CommunicationChannel;
+use App\Enums\CommunicationStatus;
 use Database\Factories\CommunicationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -15,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * A record of contact with a client: a call, a message, a meeting and what was said.
  * A client has many; they are shown on the client's card after the visit history.
  */
-#[Fillable(['channel', 'occurred_at', 'notes'])]
+#[Fillable(['channel', 'status', 'occurred_at', 'notes'])]
 class Communication extends Model
 {
     /** @use HasFactory<CommunicationFactory> */
@@ -30,8 +31,22 @@ class Communication extends Model
     {
         return [
             'channel' => CommunicationChannel::class,
+            'status' => CommunicationStatus::class,
             'occurred_at' => 'datetime',
+            'reminded_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Moving a communication to another time or back to "planned" makes its reminder due again.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (Communication $communication): void {
+            if ($communication->exists && ! $communication->isDirty('reminded_at') && $communication->isDirty(['status', 'occurred_at'])) {
+                $communication->reminded_at = null;
+            }
+        });
     }
 
     /**

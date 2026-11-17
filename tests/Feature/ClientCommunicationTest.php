@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\CommunicationChannel;
+use App\Enums\CommunicationStatus;
 use App\Models\Client;
 use App\Models\Communication;
 use App\Models\User;
@@ -36,7 +37,7 @@ class ClientCommunicationTest extends TestCase
      */
     private function payload(): array
     {
-        return ['channel' => 'phone', 'occurred_at' => '2026-11-03T14:30', 'notes' => 'Перезвонить в пятницу'];
+        return ['channel' => 'phone', 'status' => 'planned', 'occurred_at' => '2026-11-03T14:30', 'notes' => 'Перезвонить в пятницу'];
     }
 
     public function test_card_lists_only_this_clients_communications_latest_first(): void
@@ -53,9 +54,12 @@ class ClientCommunicationTest extends TestCase
                 ->has('communications', 2)
                 ->where('communications.0.id', $newer->id)
                 ->where('communications.0.channelLabel', 'Мессенджер')
+                ->where('communications.0.status', 'completed')
+                ->where('communications.0.statusLabel', 'Выполнена')
                 ->where('communications.0.occurredAt', '2026-10-02T10:00')
                 ->where('communications.1.id', $older->id)
-                ->has('communicationChannels', count(CommunicationChannel::cases())));
+                ->has('communicationChannels', count(CommunicationChannel::cases()))
+                ->has('communicationStatuses', count(CommunicationStatus::cases())));
     }
 
     #[DataProvider('everyRole')]
@@ -73,18 +77,19 @@ class ClientCommunicationTest extends TestCase
             'client_id' => $client->id,
             'created_by' => $user->id,
             'channel' => 'phone',
+            'status' => 'planned',
             'occurred_at' => '2026-11-03 14:30:00',
             'notes' => 'Перезвонить в пятницу',
         ]);
     }
 
-    public function test_communication_needs_valid_channel_time_and_notes(): void
+    public function test_communication_needs_valid_channel_status_time_and_notes(): void
     {
         $client = Client::factory()->create();
 
         $this->actingAs(User::factory()->create())
-            ->post("/clients/{$client->id}/communications", ['channel' => 'pigeon', 'occurred_at' => 'вчера', 'notes' => '   '])
-            ->assertSessionHasErrors(['channel', 'occurred_at', 'notes']);
+            ->post("/clients/{$client->id}/communications", ['channel' => 'pigeon', 'status' => 'maybe', 'occurred_at' => 'вчера', 'notes' => '   '])
+            ->assertSessionHasErrors(['channel', 'status', 'occurred_at', 'notes']);
 
         $this->assertDatabaseCount('communications', 0);
     }
@@ -95,11 +100,12 @@ class ClientCommunicationTest extends TestCase
         $admin = User::factory()->admin()->create();
 
         $this->actingAs($admin)
-            ->patch("/communications/{$communication->id}", [...$this->payload(), 'channel' => 'in_person'])
+            ->patch("/communications/{$communication->id}", [...$this->payload(), 'channel' => 'in_person', 'status' => 'completed'])
             ->assertRedirect("/clients/{$communication->client_id}");
 
         $communication->refresh();
         $this->assertSame(CommunicationChannel::InPerson, $communication->channel);
+        $this->assertSame(CommunicationStatus::Completed, $communication->status);
         $this->assertSame('Перезвонить в пятницу', $communication->notes);
 
         $this->actingAs($admin)->delete("/communications/{$communication->id}")->assertRedirect("/clients/{$communication->client_id}");

@@ -22,6 +22,7 @@ class CommunicationUpdated extends AbstractDomainEvent
      */
     private const LABELS = [
         'channel' => 'способ связи',
+        'status' => 'статус',
         'occurred_at' => 'дата и время',
         'notes' => 'содержание',
     ];

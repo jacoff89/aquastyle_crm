@@ -10,10 +10,12 @@ import TextInput from './TextInput.vue';
 
 const props = defineProps({
     clientId: { type: Number, required: true },
-    /** Коммуникации клиента: { id, channel, channelLabel, occurredAt, occurredAtLabel, notes, authorName, canManage }. */
+    /** Коммуникации клиента: { id, channel, channelLabel, status, statusLabel, occurredAt, occurredAtLabel, notes, authorName, canManage }. */
     communications: { type: Array, required: true },
     /** Способы связи: { value, label }. */
     channels: { type: Array, required: true },
+    /** Статусы коммуникации: { value, label }. */
+    statuses: { type: Array, required: true },
 });
 
 const nowLocal = () => {
@@ -24,11 +26,12 @@ const nowLocal = () => {
 
 /** Идентификатор редактируемой коммуникации, 'new' для новой, null — форма закрыта. */
 const editingId = ref(null);
-const form = useForm({ channel: props.channels[0].value, occurred_at: '', notes: '' });
+const form = useForm({ channel: props.channels[0].value, status: props.statuses[0].value, occurred_at: '', notes: '' });
 
 const open = async (communication) => {
     form.clearErrors();
     form.channel = communication?.channel ?? props.channels[0].value;
+    form.status = communication?.status ?? props.statuses[0].value;
     form.occurred_at = communication?.occurredAt ?? nowLocal();
     form.notes = communication?.notes ?? '';
     editingId.value = communication?.id ?? 'new';
@@ -67,10 +70,15 @@ const destroy = (communication) => {
             @submit.prevent="save"
             @keydown.esc="close"
         >
-            <div class="grid gap-4 sm:grid-cols-2">
+            <div class="grid gap-4 sm:grid-cols-3">
                 <FormField id="communication-channel" label="Способ связи" :error="form.errors.channel">
                     <SelectInput id="communication-channel" v-model="form.channel" :invalid="Boolean(form.errors.channel)">
                         <option v-for="channel in channels" :key="channel.value" :value="channel.value">{{ channel.label }}</option>
+                    </SelectInput>
+                </FormField>
+                <FormField id="communication-status" label="Статус" :error="form.errors.status">
+                    <SelectInput id="communication-status" v-model="form.status" :invalid="Boolean(form.errors.status)">
+                        <option v-for="status in statuses" :key="status.value" :value="status.value">{{ status.label }}</option>
                     </SelectInput>
                 </FormField>
                 <FormField id="communication-occurred-at" label="Дата и время" :error="form.errors.occurred_at">
@@ -97,6 +105,8 @@ const destroy = (communication) => {
                 <div class="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
                     <p class="min-w-0">
                         <span class="font-medium text-ink">{{ communication.channelLabel }}</span>
+                        <span class="text-muted"> · </span>
+                        <span :class="communication.status === 'planned' ? 'font-medium text-sea-700' : 'text-muted'">{{ communication.statusLabel }}</span>
                         <span class="text-muted"> · {{ communication.occurredAtLabel }}</span>
                         <span v-if="communication.authorName" class="text-muted"> · {{ communication.authorName }}</span>
                     </p>
