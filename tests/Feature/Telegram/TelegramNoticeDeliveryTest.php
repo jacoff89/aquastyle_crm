@@ -9,7 +9,9 @@ use App\Notifications\NoticeInTelegram;
 use App\Notifications\Telegram\TelegramException;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\Client\Request;
+use Illuminate\Log\Events\MessageLogged;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
 /**
@@ -24,7 +26,7 @@ class TelegramNoticeDeliveryTest extends TestCase
     {
         parent::setUp();
 
-        config(['services.telegram.token' => 'test-token', 'services.telegram.username' => 'aquastyle_test_bot']);
+        config(['services.telegram.token' => 'test-token', 'services.telegram.username' => 'aquastyle_test_bot', 'services.telegram.deliver' => true]);
         Http::preventStrayRequests();
     }
 
@@ -65,6 +67,27 @@ class TelegramNoticeDeliveryTest extends TestCase
             && $request['parse_mode'] === 'HTML'
             && str_contains($request['text'], 'Новое занятие «Фридайвинг» 12.11 10:00–11:00, ведущий Иван Петров')
             && str_contains($request['text'], 'Анна · '));
+    }
+
+    public function test_outside_production_the_message_is_logged_instead_of_sent(): void
+    {
+        $this->fakeTelegram();
+        config(['services.telegram.deliver' => false]);
+        $logged = [];
+        Log::listen(function (MessageLogged $event) use (&$logged): void {
+            $logged[] = $event->context['chat_id'] ?? null;
+        });
+        $lead = User::factory()->withTelegram()->create();
+
+        $this->actingAs(User::factory()->admin()->create())->postJson('/events', [
+            'event_type_id' => EventType::factory()->create()->id,
+            'starts_at' => '2026-11-12 10:00',
+            'ends_at' => '2026-11-12 11:00',
+            'lead_instructor_id' => $lead->id,
+        ])->assertCreated();
+
+        Http::assertNothingSent();
+        $this->assertContains($lead->telegram_chat_id, $logged);
     }
 
     public function test_nothing_is_sent_while_the_bot_is_not_configured(): void

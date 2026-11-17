@@ -40,6 +40,7 @@ return [
         'proxy' => env('TELEGRAM_PROXY'),
         'webhook_secret' => env('TELEGRAM_WEBHOOK_SECRET'),
         'webhook_url' => env('TELEGRAM_WEBHOOK_URL'),
+        'deliver' => (bool) env('TELEGRAM_DELIVER', env('APP_ENV') === 'production'),
     ],
 
     'slack' => [

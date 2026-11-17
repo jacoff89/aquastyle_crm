@@ -19,7 +19,7 @@ class BirthdayReminderTest extends TestCase
     {
         parent::setUp();
 
-        config(['services.telegram.token' => 'test-token', 'services.telegram.username' => 'aquastyle_test_bot']);
+        config(['services.telegram.token' => 'test-token', 'services.telegram.username' => 'aquastyle_test_bot', 'services.telegram.deliver' => true]);
         $this->travelTo('2026-11-17 09:00');
         Notification::fake();
     }
