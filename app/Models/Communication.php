@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\CommunicationChannel;
 use App\Enums\CommunicationStatus;
+use Carbon\CarbonInterface;
 use Database\Factories\CommunicationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -65,6 +66,17 @@ class Communication extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Communications whose time falls in [$start, $end).
+     *
+     * @param  Builder<Communication>  $query
+     */
+    #[Scope]
+    protected function occurredBetween(Builder $query, CarbonInterface $start, CarbonInterface $end): void
+    {
+        $query->where('occurred_at', '>=', $start)->where('occurred_at', '<', $end);
     }
 
     /**

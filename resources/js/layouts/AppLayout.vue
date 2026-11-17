@@ -37,6 +37,7 @@ usePoll(60_000, { only: ['unreadNotices'] });
 const sections = computed(() =>
     [
         { label: 'Календарь', href: '/calendar', icon: 'calendar' },
+        page.props.can.viewCommunications && { label: 'Коммуникации', href: '/communications', icon: 'communications' },
         { label: 'Уведомления', href: '/notifications', icon: 'bell', badge: unreadBadge.value },
         { label: 'Клиенты', href: '/clients', icon: 'clients' },
         page.props.can.manageInstructors && { label: 'Инструкторы', href: '/instructors', icon: 'instructors' },

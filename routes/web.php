@@ -9,6 +9,8 @@ use App\Http\Controllers\ClientCommunicationController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ClientDuplicateController;
 use App\Http\Controllers\ClientSearchController;
+use App\Http\Controllers\CommunicationCalendarController;
+use App\Http\Controllers\CommunicationCalendarEventController;
 use App\Http\Controllers\EquipmentCategoryController;
 use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\EventClientController;
@@ -54,6 +56,9 @@ Route::middleware('auth')->group(function () {
 
     Route::get('calendar', CalendarController::class)->name('calendar');
     Route::get('calendar/events', CalendarEventController::class)->name('calendar.events');
+
+    Route::get('communications', CommunicationCalendarController::class)->name('communications.index');
+    Route::get('communications/events', CommunicationCalendarEventController::class)->name('communications.events');
 
     Route::post('events', [EventController::class, 'store'])->name('events.store');
     Route::patch('events/{event}', [EventController::class, 'update'])->name('events.update');

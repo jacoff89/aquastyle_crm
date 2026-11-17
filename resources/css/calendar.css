@@ -1,0 +1,109 @@
+/* Внешний вид календаря vue-cal: общий для календаря занятий и календаря коммуникаций. */
+
+.calendar .vuecal {
+    --vuecal-accent: var(--color-sea-600);
+}
+
+.calendar .vuecal__menu,
+.calendar .vuecal__cell-events-count {
+    background-color: var(--color-sea-600);
+}
+
+.calendar .vuecal__title-bar {
+    background-color: var(--color-sea-50);
+}
+
+.calendar .vuecal__menu {
+    background-color: var(--color-depth-900);
+}
+
+.calendar .vuecal__view-btn {
+    color: var(--color-depth-300);
+}
+
+.calendar .vuecal__view-btn--active {
+    color: #fff;
+    border-bottom-color: #fff;
+    background-color: transparent;
+}
+
+.calendar .vuecal__cell--today,
+.calendar .vuecal__cell--current {
+    background-color: rgb(232 244 246 / 0.6);
+}
+
+.calendar .vuecal__cell--selected {
+    background-color: rgb(207 232 237 / 0.4);
+}
+
+.calendar .vuecal__event {
+    background: transparent;
+    color: inherit;
+    border: none;
+    padding: 1px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.calendar .vuecal__event .event-card {
+    height: 100%;
+    overflow: hidden;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 12px;
+    line-height: 1.35;
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08);
+}
+
+.calendar .vuecal--month-view .vuecal__cell-content {
+    justify-content: flex-start;
+    padding-top: 4px;
+}
+
+.calendar .vuecal--month-view .vuecal__event .event-card {
+    height: auto;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.calendar .vuecal__event .event-card.is-draft {
+    background-color: rgb(15 124 143 / 0.25);
+    box-shadow: inset 0 0 0 1px var(--color-sea-600);
+}
+
+.calendar .vuecal__event.is-cancelled .event-card,
+.calendar .vuecal__event.is-done .event-card {
+    opacity: 0.45;
+}
+
+.calendar .vuecal__event.is-cancelled .event-card {
+    text-decoration: line-through;
+}
+
+/* Своё занятие: двойная внутренняя рамка читается на любом цвете инструктора. */
+.calendar .vuecal__event.is-mine .event-card {
+    font-weight: 600;
+    box-shadow:
+        inset 0 0 0 2px var(--color-ink),
+        inset 0 0 0 3px rgb(255 255 255 / 0.85);
+}
+
+.calendar .vuecal__event--focus .event-card {
+    box-shadow: 0 0 0 2px var(--color-ink);
+}
+
+.calendar .vuecal__event--focus.is-mine .event-card {
+    box-shadow:
+        0 0 0 2px var(--color-ink),
+        inset 0 0 0 2px var(--color-ink),
+        inset 0 0 0 3px rgb(255 255 255 / 0.85);
+}
+
+.calendar .vuecal__event-resize-handle {
+    background-color: rgb(0 0 0 / 0.12);
+}
+
+.calendar .vuecal__split-days-headers .day-split-header,
+.calendar .vuecal__cell-split .split-label {
+    font-size: 12px;
+}

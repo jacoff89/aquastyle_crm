@@ -9,9 +9,17 @@ use App\Models\User;
 /**
  * Administrators and instructors both add communications. Instructors edit and
  * delete only their own; administrators edit and delete any.
+ *
+ * The calendar of every communication is for administrators only; instructors
+ * see communications on the client's card.
  */
 class CommunicationPolicy
 {
+    public function viewAny(User $user): bool
+    {
+        return $user->isAdmin();
+    }
+
     public function create(User $user, Client $client): bool
     {
         return true;

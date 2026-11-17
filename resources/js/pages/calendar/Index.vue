@@ -1,8 +1,10 @@
 <script setup>
-import { Link, http, usePage } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import VueCal from 'vue-cal';
 import 'vue-cal/dist/vuecal.css';
+import '../../../css/calendar.css';
+import { formatDate, formatDateTime, rememberInAddress, request, shortWeekday, textColorFor } from '../../calendar.js';
 import EventDialog from '../../components/EventDialog.vue';
 import FormField from '../../components/FormField.vue';
 import SelectInput from '../../components/SelectInput.vue';
@@ -62,35 +64,6 @@ const hasFilters = computed(() => instructorFilter.value !== '' || typeFilter.va
 
 const isInstructor = computed(() => page.props.auth.user.roles.includes('instructor'));
 
-const pad = (number) => String(number).padStart(2, '0');
-
-/** Дата в виде YYYY-MM-DD по местным часам браузера: vue-cal работает с ними же. */
-const formatDate = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-const formatDateTime = (date) => `${formatDate(date)} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
-
-/**
- * Запрос к серверу. Ответы 4xx приходят как исключение с полем response,
- * поэтому здесь они превращаются в обычный результат { status, data }.
- */
-const request = async (method, url, data = null) => {
-    try {
-        const response = await http.getClient().request({
-            method,
-            url,
-            data,
-            headers: { Accept: 'application/json' },
-        });
-
-        return { status: response.status, data: response.data ? JSON.parse(response.data) : null };
-    } catch (error) {
-        if (error?.response) {
-            return { status: error.response.status, data: error.response.data ? JSON.parse(error.response.data) : null };
-        }
-
-        return { status: 0, data: null };
-    }
-};
-
 /* ---------- Загрузка занятий за видимый период ---------- */
 
 const range = ref(null);
@@ -140,22 +113,10 @@ const rememberPosition = () => {
         return;
     }
 
-    const url = new URL(window.location.href);
-    url.searchParams.set('view', position.view);
-    url.searchParams.set('date', formatDate(position.date));
-
-    for (const [name, value] of [
-        ['instructor_id', instructorFilter.value],
-        ['event_type_id', typeFilter.value],
-    ]) {
-        if (value === '') {
-            url.searchParams.delete(name);
-        } else {
-            url.searchParams.set(name, value);
-        }
-    }
-
-    window.history.replaceState(window.history.state, '', url);
+    rememberInAddress(position.view, position.date, {
+        instructor_id: instructorFilter.value,
+        event_type_id: typeFilter.value,
+    });
 };
 
 const onViewChange = (view) => {
@@ -215,20 +176,6 @@ const splits = computed(() => {
 });
 
 const splitIds = computed(() => new Set(splits.value.map((split) => split.id)));
-
-/** Белый или тёмный текст — что лучше читается на цвете инструктора. */
-const textColorFor = (hex) => {
-    const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex ?? '');
-
-    if (!match) {
-        return '#ffffff';
-    }
-
-    const [red, green, blue] = match.slice(1).map((part) => parseInt(part, 16) / 255);
-    const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
-
-    return luminance > 0.6 ? '#12262e' : '#ffffff';
-};
 
 const calendarEvents = computed(() =>
     events.value.flatMap((event) => {
@@ -318,18 +265,6 @@ const createFromButton = () => {
 };
 
 /** Открывает выбранный день в дневном виде. */
-const shortWeekdays = {
-    понедельник: 'пн',
-    вторник: 'вт',
-    среда: 'ср',
-    четверг: 'чт',
-    пятница: 'пт',
-    суббота: 'сб',
-    воскресенье: 'вс',
-};
-
-const shortWeekday = (heading) => shortWeekdays[heading.label.toLowerCase()] ?? heading.label.slice(0, 2).toLowerCase();
-
 const openDay = (date) => {
     selectedDate.value = formatDate(date);
     activeView.value = 'day';
@@ -757,113 +692,3 @@ const isEmptyPeriod = computed(() => loaded.value && !loading.value && events.va
         <div v-if="confirmation" class="fixed inset-0 z-40 bg-depth-950/50" aria-hidden="true" />
     </AppLayout>
 </template>
-
-<style>
-.calendar .vuecal {
-    --vuecal-accent: var(--color-sea-600);
-}
-
-.calendar .vuecal__menu,
-.calendar .vuecal__cell-events-count {
-    background-color: var(--color-sea-600);
-}
-
-.calendar .vuecal__title-bar {
-    background-color: var(--color-sea-50);
-}
-
-.calendar .vuecal__menu {
-    background-color: var(--color-depth-900);
-}
-
-.calendar .vuecal__view-btn {
-    color: var(--color-depth-300);
-}
-
-.calendar .vuecal__view-btn--active {
-    color: #fff;
-    border-bottom-color: #fff;
-    background-color: transparent;
-}
-
-.calendar .vuecal__cell--today,
-.calendar .vuecal__cell--current {
-    background-color: rgb(232 244 246 / 0.6);
-}
-
-.calendar .vuecal__cell--selected {
-    background-color: rgb(207 232 237 / 0.4);
-}
-
-.calendar .vuecal__event {
-    background: transparent;
-    color: inherit;
-    border: none;
-    padding: 1px;
-    text-align: left;
-    cursor: pointer;
-}
-
-.calendar .vuecal__event .event-card {
-    height: 100%;
-    overflow: hidden;
-    border-radius: 4px;
-    padding: 2px 6px;
-    font-size: 12px;
-    line-height: 1.35;
-    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08);
-}
-
-.calendar .vuecal--month-view .vuecal__cell-content {
-    justify-content: flex-start;
-    padding-top: 4px;
-}
-
-.calendar .vuecal--month-view .vuecal__event .event-card {
-    height: auto;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-}
-
-.calendar .vuecal__event .event-card.is-draft {
-    background-color: rgb(15 124 143 / 0.25);
-    box-shadow: inset 0 0 0 1px var(--color-sea-600);
-}
-
-.calendar .vuecal__event.is-cancelled .event-card,
-.calendar .vuecal__event.is-done .event-card {
-    opacity: 0.45;
-}
-
-.calendar .vuecal__event.is-cancelled .event-card {
-    text-decoration: line-through;
-}
-
-/* Своё занятие: двойная внутренняя рамка читается на любом цвете инструктора. */
-.calendar .vuecal__event.is-mine .event-card {
-    font-weight: 600;
-    box-shadow:
-        inset 0 0 0 2px var(--color-ink),
-        inset 0 0 0 3px rgb(255 255 255 / 0.85);
-}
-
-.calendar .vuecal__event--focus .event-card {
-    box-shadow: 0 0 0 2px var(--color-ink);
-}
-
-.calendar .vuecal__event--focus.is-mine .event-card {
-    box-shadow:
-        0 0 0 2px var(--color-ink),
-        inset 0 0 0 2px var(--color-ink),
-        inset 0 0 0 3px rgb(255 255 255 / 0.85);
-}
-
-.calendar .vuecal__event-resize-handle {
-    background-color: rgb(0 0 0 / 0.12);
-}
-
-.calendar .vuecal__split-days-headers .day-split-header,
-.calendar .vuecal__cell-split .split-label {
-    font-size: 12px;
-}
-</style>

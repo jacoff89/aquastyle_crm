@@ -29,6 +29,7 @@ class HandleInertiaRequestsTest extends TestCase
                 ->where('can.manageClientStatuses', true)
                 ->where('can.manageCertifications', true)
                 ->where('can.manageLocations', true)
+                ->where('can.viewCommunications', true)
                 ->where('can.viewEquipment', true)
                 ->where('can.manageEquipment', true));
     }
@@ -56,6 +57,7 @@ class HandleInertiaRequestsTest extends TestCase
                 ->where('can.manageClientStatuses', false)
                 ->where('can.manageCertifications', false)
                 ->where('can.manageLocations', false)
+                ->where('can.viewCommunications', false)
                 ->where('can.viewEquipment', true)
                 ->where('can.manageEquipment', false));
     }

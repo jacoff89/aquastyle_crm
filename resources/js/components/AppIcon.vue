@@ -20,6 +20,10 @@ defineProps({
             <rect x="3.5" y="5" width="17" height="15" rx="2" />
             <path d="M3.5 10h17M8 3v4M16 3v4" />
         </template>
+        <template v-else-if="name === 'communications'">
+            <path d="M4 5.5h11a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H9l-3.5 3v-3H4A1.5 1.5 0 0 1 2.5 13V7A1.5 1.5 0 0 1 4 5.5Z" />
+            <path d="M16.5 9H20a1.5 1.5 0 0 1 1.5 1.5v6A1.5 1.5 0 0 1 20 18h-1v2.5L16 18h-4.5a1.5 1.5 0 0 1-1.5-1.5v-2" />
+        </template>
         <template v-else-if="name === 'clients'">
             <circle cx="9" cy="8.5" r="3.5" />
             <path d="M2.5 19.5c.8-3.3 3.4-5 6.5-5s5.7 1.7 6.5 5" />
