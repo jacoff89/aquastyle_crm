@@ -201,7 +201,7 @@ class ClientControllerTest extends TestCase
             ->get('/clients')
             ->assertInertia(fn (Assert $page) => $page
                 ->has('clients.data.0', fn (Assert $client) => $client
-                    ->hasAll(['id', 'name', 'phone', 'email', 'createdAtLabel', 'isChild', 'parentName'])
+                    ->hasAll(['id', 'name', 'phone', 'email', 'createdAtLabel', 'isChild', 'parentName', 'statusName', 'certificationNames'])
                     ->missing('notes')));
     }
 

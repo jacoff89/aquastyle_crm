@@ -83,6 +83,32 @@ const destroy = () => {
                 </dl>
             </section>
 
+            <section class="rounded-lg border border-line bg-white p-6" aria-labelledby="training-heading">
+                <h2 id="training-heading" class="text-lg font-semibold">Обучение</h2>
+
+                <dl class="mt-4 grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
+                    <div>
+                        <dt class="text-muted">Статус</dt>
+                        <dd class="mt-0.5 text-ink">{{ client.statusName || '—' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-muted">Сертификации</dt>
+                        <dd class="mt-1">
+                            <ul v-if="client.certificationNames.length" class="flex flex-wrap gap-1.5">
+                                <li
+                                    v-for="name in client.certificationNames"
+                                    :key="name"
+                                    class="rounded-full bg-sea-50 px-2.5 py-0.5 text-xs font-medium text-sea-700"
+                                >
+                                    {{ name }}
+                                </li>
+                            </ul>
+                            <span v-else class="text-ink">—</span>
+                        </dd>
+                    </div>
+                </dl>
+            </section>
+
             <section v-if="children.length" aria-labelledby="children-heading">
                 <h2 id="children-heading" class="text-lg font-semibold">Дочерние клиенты</h2>
                 <ul class="mt-3 divide-y divide-line rounded-lg border border-line bg-white text-sm">

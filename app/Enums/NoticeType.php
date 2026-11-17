@@ -46,6 +46,7 @@ enum NoticeType: string
     case ClientCreated = 'ClientCreated';
     case ClientUpdated = 'ClientUpdated';
     case ClientDeleted = 'ClientDeleted';
+    case ClientCertificationsChanged = 'ClientCertificationsChanged';
     case CommunicationCreated = 'CommunicationCreated';
     case CommunicationUpdated = 'CommunicationUpdated';
     case CommunicationDeleted = 'CommunicationDeleted';
@@ -59,6 +60,12 @@ enum NoticeType: string
     case ExercisesReordered = 'ExercisesReordered';
     case LocationCreated = 'LocationCreated';
     case LocationUpdated = 'LocationUpdated';
+    case ClientStatusCreated = 'ClientStatusCreated';
+    case ClientStatusUpdated = 'ClientStatusUpdated';
+    case ClientStatusesReordered = 'ClientStatusesReordered';
+    case CertificationCreated = 'CertificationCreated';
+    case CertificationUpdated = 'CertificationUpdated';
+    case CertificationsReordered = 'CertificationsReordered';
 
     /**
      * Human-readable kind of notice shown in the settings.
@@ -94,6 +101,7 @@ enum NoticeType: string
             self::ClientCreated => 'Новый клиент',
             self::ClientUpdated => 'Изменены данные клиента',
             self::ClientDeleted => 'Клиент удалён',
+            self::ClientCertificationsChanged => 'Изменены сертификации клиента',
             self::CommunicationCreated => 'Записан контакт с клиентом',
             self::CommunicationUpdated => 'Изменён контакт с клиентом',
             self::CommunicationDeleted => 'Удалён контакт с клиентом',
@@ -106,6 +114,12 @@ enum NoticeType: string
             self::ExercisesReordered => 'Изменён порядок упражнений',
             self::LocationCreated => 'Новая локация',
             self::LocationUpdated => 'Изменена локация',
+            self::ClientStatusCreated => 'Новый статус клиентов',
+            self::ClientStatusUpdated => 'Изменён статус клиентов',
+            self::ClientStatusesReordered => 'Изменён порядок статусов клиентов',
+            self::CertificationCreated => 'Новая сертификация',
+            self::CertificationUpdated => 'Изменена сертификация',
+            self::CertificationsReordered => 'Изменён порядок сертификаций',
         };
     }
 
@@ -123,11 +137,13 @@ enum NoticeType: string
             self::EquipmentCategoryCreated, self::EquipmentCategoryUpdated => 'Снаряжение',
             self::UserCreated, self::UserUpdated, self::UserActivated, self::UserDeactivated,
             self::UserRolesChanged, self::UserPasswordChanged => 'Учётные записи',
-            self::ClientCreated, self::ClientUpdated, self::ClientDeleted,
+            self::ClientCreated, self::ClientUpdated, self::ClientDeleted, self::ClientCertificationsChanged,
             self::CommunicationCreated, self::CommunicationUpdated, self::CommunicationDeleted => 'Клиенты',
             self::EventTypeCreated, self::EventTypeUpdated, self::EventTypesReordered, self::ExerciseCreated,
             self::ExerciseUpdated, self::ExerciseEventTypesChanged, self::ExercisesReordered,
-            self::LocationCreated, self::LocationUpdated => 'Справочники',
+            self::LocationCreated, self::LocationUpdated,
+            self::ClientStatusCreated, self::ClientStatusUpdated, self::ClientStatusesReordered,
+            self::CertificationCreated, self::CertificationUpdated, self::CertificationsReordered => 'Справочники',
         };
     }
 
@@ -139,11 +155,13 @@ enum NoticeType: string
     {
         return match ($this) {
             self::EquipmentCategoryCreated, self::EquipmentCategoryUpdated,
-            self::ClientCreated, self::ClientUpdated, self::ClientDeleted,
+            self::ClientCreated, self::ClientUpdated, self::ClientDeleted, self::ClientCertificationsChanged,
             self::CommunicationCreated, self::CommunicationUpdated, self::CommunicationDeleted,
             self::EventTypeCreated, self::EventTypeUpdated, self::EventTypesReordered, self::ExerciseCreated,
             self::ExerciseUpdated, self::ExerciseEventTypesChanged, self::ExercisesReordered,
-            self::LocationCreated, self::LocationUpdated => false,
+            self::LocationCreated, self::LocationUpdated,
+            self::ClientStatusCreated, self::ClientStatusUpdated, self::ClientStatusesReordered,
+            self::CertificationCreated, self::CertificationUpdated, self::CertificationsReordered => false,
             default => true,
         };
     }

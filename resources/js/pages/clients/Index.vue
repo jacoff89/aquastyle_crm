@@ -126,6 +126,8 @@ const arrow = (key) => {
                                 <Link :href="sortHref('phone')" class="hover:text-ink">Телефон {{ arrow('phone') }}</Link>
                             </th>
                             <th scope="col" class="hidden px-4 py-2.5 font-medium md:table-cell">Email</th>
+                            <th scope="col" class="hidden px-4 py-2.5 font-medium md:table-cell">Статус</th>
+                            <th scope="col" class="hidden px-4 py-2.5 font-medium lg:table-cell">Сертификации</th>
                             <th scope="col" class="hidden px-4 py-2.5 font-medium lg:table-cell" :aria-sort="ariaSort('created')">
                                 <Link :href="sortHref('created')" class="hover:text-ink">Добавлен {{ arrow('created') }}</Link>
                             </th>
@@ -147,6 +149,24 @@ const arrow = (key) => {
                             </td>
                             <td class="text-muted sm:px-4 sm:py-3">{{ formatPhone(client.phone) || (client.isChild ? '—' : '') }}</td>
                             <td class="hidden px-4 py-3 text-muted md:table-cell">{{ client.email || '—' }}</td>
+                            <td class="hidden px-4 py-3 md:table-cell">
+                                <span v-if="client.statusName" class="inline-block rounded-full bg-sea-50 px-2 py-0.5 text-xs font-medium text-sea-700">
+                                    {{ client.statusName }}
+                                </span>
+                                <span v-else class="text-muted">—</span>
+                            </td>
+                            <td class="hidden px-4 py-3 lg:table-cell">
+                                <ul v-if="client.certificationNames.length" class="flex flex-wrap gap-1">
+                                    <li
+                                        v-for="name in client.certificationNames"
+                                        :key="name"
+                                        class="rounded-full bg-sea-50 px-2 py-0.5 text-xs font-medium text-sea-700"
+                                    >
+                                        {{ name }}
+                                    </li>
+                                </ul>
+                                <span v-else class="text-muted">—</span>
+                            </td>
                             <td class="hidden px-4 py-3 text-muted lg:table-cell">{{ client.createdAtLabel }}</td>
                         </tr>
                     </tbody>

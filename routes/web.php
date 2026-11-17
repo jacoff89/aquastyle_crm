@@ -20,6 +20,10 @@ use App\Http\Controllers\NoticeSettingsController;
 use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ScheduleRangeController;
+use App\Http\Controllers\Settings\CertificationController;
+use App\Http\Controllers\Settings\CertificationPositionController;
+use App\Http\Controllers\Settings\ClientStatusController;
+use App\Http\Controllers\Settings\ClientStatusPositionController;
 use App\Http\Controllers\Settings\EventTypeController;
 use App\Http\Controllers\Settings\EventTypePositionController;
 use App\Http\Controllers\Settings\ExerciseController;
@@ -104,6 +108,16 @@ Route::middleware('auth')->group(function () {
         Route::post('exercises', [ExerciseController::class, 'store'])->name('exercises.store');
         Route::patch('exercises/{exercise}', [ExerciseController::class, 'update'])->name('exercises.update');
         Route::patch('exercises/{exercise}/position', [ExercisePositionController::class, 'update'])->name('exercises.position');
+
+        Route::get('client-statuses', [ClientStatusController::class, 'index'])->name('client-statuses.index');
+        Route::post('client-statuses', [ClientStatusController::class, 'store'])->name('client-statuses.store');
+        Route::patch('client-statuses/{clientStatus}', [ClientStatusController::class, 'update'])->name('client-statuses.update');
+        Route::patch('client-statuses/{clientStatus}/position', [ClientStatusPositionController::class, 'update'])->name('client-statuses.position');
+
+        Route::get('certifications', [CertificationController::class, 'index'])->name('certifications.index');
+        Route::post('certifications', [CertificationController::class, 'store'])->name('certifications.store');
+        Route::patch('certifications/{certification}', [CertificationController::class, 'update'])->name('certifications.update');
+        Route::patch('certifications/{certification}/position', [CertificationPositionController::class, 'update'])->name('certifications.position');
 
         Route::resource('users', UserController::class)->except(['show', 'destroy']);
     });

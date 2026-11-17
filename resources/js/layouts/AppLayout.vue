@@ -49,11 +49,16 @@ const settings = computed(() =>
     [
         page.props.can.manageEventTypes && { label: 'Типы занятий', href: '/settings/event-types', icon: 'types' },
         page.props.can.manageExercises && { label: 'Упражнения', href: '/settings/exercises', icon: 'exercises' },
+        page.props.can.manageClientStatuses && { label: 'Статусы клиентов', href: '/settings/client-statuses', icon: 'statuses' },
+        page.props.can.manageCertifications && { label: 'Сертификации', href: '/settings/certifications', icon: 'certifications' },
         page.props.can.manageUsers && { label: 'Пользователи', href: '/settings/users', icon: 'users' },
     ].filter(Boolean),
 );
 
 const isCurrent = (href) => href && (page.url === href || page.url.startsWith(`${href}/`) || page.url.startsWith(`${href}?`));
+
+/** Блок «Настройки» свёрнут, пока пользователь его не откроет; на странице настроек раскрыт, чтобы был виден текущий пункт. */
+const settingsOpen = ref(settings.value.some((item) => isCurrent(item.href)));
 
 const closeOnEscape = (event) => {
     if (event.key === 'Escape') {
@@ -104,7 +109,7 @@ onBeforeUnmount(() => {
         />
 
         <aside
-            class="fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-depth-900 text-depth-300 transition-transform duration-200 lg:static lg:min-h-screen lg:translate-x-0 motion-reduce:transition-none"
+            class="fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-depth-900 text-depth-300 transition-transform duration-200 lg:sticky lg:top-0 lg:h-screen lg:shrink-0 lg:translate-x-0 motion-reduce:transition-none"
             :class="menuOpen ? 'translate-x-0' : '-translate-x-full'"
         >
             <div class="flex items-start gap-2 px-4 pt-5 pb-7">
@@ -121,7 +126,7 @@ onBeforeUnmount(() => {
                 </button>
             </div>
 
-            <nav class="flex-1 space-y-8 px-3" aria-label="Основное меню">
+            <nav class="min-h-0 flex-1 space-y-8 overflow-y-auto px-3" aria-label="Основное меню">
                 <ul class="space-y-1">
                     <li v-for="item in sections" :key="item.label">
                         <SidebarLink
@@ -143,18 +148,37 @@ onBeforeUnmount(() => {
                 </ul>
 
                 <div v-if="settings.length">
-                    <p class="px-3 pb-2 text-xs text-depth-300/80">Настройки</p>
-                    <ul class="space-y-1">
-                        <li v-for="item in settings" :key="item.label">
-                            <SidebarLink :href="item.href" :icon="item.icon" :current="isCurrent(item.href)">
-                                {{ item.label }}
-                            </SidebarLink>
-                        </li>
-                    </ul>
+                    <button
+                        type="button"
+                        class="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-xs text-depth-300/80 transition-colors hover:bg-depth-800 hover:text-white"
+                        :aria-expanded="settingsOpen"
+                        aria-controls="settings-menu"
+                        @click="settingsOpen = !settingsOpen"
+                    >
+                        Настройки
+                        <AppIcon
+                            name="down"
+                            class="transition-transform duration-200 motion-reduce:transition-none"
+                            :class="settingsOpen ? 'rotate-180' : ''"
+                        />
+                    </button>
+                    <div
+                        id="settings-menu"
+                        class="grid transition-[grid-template-rows] duration-200 motion-reduce:transition-none"
+                        :class="settingsOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'"
+                    >
+                        <ul class="space-y-1 overflow-hidden" :inert="!settingsOpen">
+                            <li v-for="item in settings" :key="item.label" class="first:mt-2">
+                                <SidebarLink :href="item.href" :icon="item.icon" :current="isCurrent(item.href)">
+                                    {{ item.label }}
+                                </SidebarLink>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </nav>
 
-            <div class="border-t border-depth-800 px-3 py-4">
+            <div class="shrink-0 border-t border-depth-800 px-3 py-4">
                 <div class="px-3 pb-3">
                     <p class="truncate text-sm font-medium text-white">{{ user.name }}</p>
                     <p class="text-xs">{{ user.roleLabel }}</p>

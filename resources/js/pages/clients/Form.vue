@@ -3,6 +3,7 @@ import { Link, useForm } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import FormField from '../../components/FormField.vue';
 import PrimaryButton from '../../components/PrimaryButton.vue';
+import SelectInput from '../../components/SelectInput.vue';
 import TextArea from '../../components/TextArea.vue';
 import TextInput from '../../components/TextInput.vue';
 import AppLayout from '../../layouts/AppLayout.vue';
@@ -11,6 +12,10 @@ import { formatPhone } from '../../phone.js';
 const props = defineProps({
     client: { type: Object, default: null },
     parent: { type: Object, default: null },
+    /** Статусы, которые можно выбрать: { id, name, isActive }. Скрытый приходит, только если он уже стоит у клиента. */
+    statuses: { type: Array, required: true },
+    /** Сертификации, которые можно отметить: { id, name, isActive }. Скрытые — только те, что уже есть у клиента. */
+    certifications: { type: Array, required: true },
 });
 
 const isEditing = computed(() => props.client !== null);
@@ -27,6 +32,8 @@ const form = useForm({
     email: props.client?.email ?? '',
     birth_date: props.client?.birthDate ?? '',
     notes: props.client?.notes ?? '',
+    client_status_id: props.client?.clientStatusId ?? null,
+    certification_ids: [...(props.client?.certificationIds ?? [])],
     confirm_duplicate: false,
 });
 
@@ -135,6 +142,8 @@ const clearParent = () => {
 };
 
 onBeforeUnmount(() => clearTimeout(parentTimer));
+
+const certificationError = computed(() => Object.entries(form.errors).find(([key]) => key.startsWith('certification_ids'))?.[1] ?? '');
 
 const submit = () => {
     const options = { onError: checkDuplicates };
@@ -285,6 +294,44 @@ const submit = () => {
                 <FormField id="notes" label="Заметки" :error="form.errors.notes">
                     <TextArea id="notes" v-model="form.notes" :invalid="Boolean(form.errors.notes)" />
                 </FormField>
+            </section>
+
+            <section class="space-y-5 rounded-lg border border-line bg-white p-6" aria-labelledby="training-heading">
+                <h2 id="training-heading" class="text-lg font-semibold">Обучение</h2>
+
+                <FormField
+                    id="client_status_id"
+                    label="Статус"
+                    :hint="statuses.length ? 'На каком этапе обучения клиент.' : 'Статусов пока нет: их добавляет администратор в настройках.'"
+                    :error="form.errors.client_status_id"
+                >
+                    <SelectInput id="client_status_id" v-model="form.client_status_id" :invalid="Boolean(form.errors.client_status_id)">
+                        <option :value="null">Не выбран</option>
+                        <option v-for="status in statuses" :key="status.id" :value="status.id">
+                            {{ status.name }}{{ status.isActive ? '' : ' (скрыт)' }}
+                        </option>
+                    </SelectInput>
+                </FormField>
+
+                <fieldset>
+                    <legend class="text-sm font-medium text-ink">Сертификации</legend>
+                    <p v-if="!certifications.length" class="mt-1.5 text-sm text-muted">Сертификаций пока нет: их добавляет администратор в настройках.</p>
+                    <div v-else class="mt-1.5 grid gap-x-6 gap-y-1.5 sm:grid-cols-2">
+                        <label v-for="certification in certifications" :key="certification.id" class="flex items-start gap-2 text-sm text-ink">
+                            <input
+                                v-model="form.certification_ids"
+                                type="checkbox"
+                                :value="certification.id"
+                                class="mt-0.5 size-4 rounded border-line accent-sea-600"
+                            />
+                            <span>
+                                {{ certification.name }}
+                                <span v-if="!certification.isActive" class="ml-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-muted">скрыта</span>
+                            </span>
+                        </label>
+                    </div>
+                    <p v-if="certificationError" class="mt-1.5 text-sm text-flag">{{ certificationError }}</p>
+                </fieldset>
             </section>
 
             <div class="flex items-center gap-4">

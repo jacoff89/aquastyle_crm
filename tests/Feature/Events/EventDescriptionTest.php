@@ -20,6 +20,7 @@ use App\Events\CalendarEvents\CalendarEventReopened;
 use App\Events\CalendarEvents\CalendarEventRescheduled;
 use App\Events\CalendarEvents\CalendarEventUpdated;
 use App\Events\ChangeSet;
+use App\Events\Clients\ClientCertificationsChanged;
 use App\Events\Clients\ClientCreated;
 use App\Events\Clients\ClientDeleted;
 use App\Events\Clients\ClientUpdated;
@@ -33,6 +34,12 @@ use App\Events\Equipment\EquipmentCategoryUpdated;
 use App\Events\Equipment\EquipmentCreated;
 use App\Events\Equipment\EquipmentStatusChanged;
 use App\Events\Equipment\EquipmentUpdated;
+use App\Events\Settings\CertificationCreated;
+use App\Events\Settings\CertificationsReordered;
+use App\Events\Settings\CertificationUpdated;
+use App\Events\Settings\ClientStatusCreated;
+use App\Events\Settings\ClientStatusesReordered;
+use App\Events\Settings\ClientStatusUpdated;
 use App\Events\Settings\EventTypeCreated;
 use App\Events\Settings\EventTypesReordered;
 use App\Events\Settings\EventTypeUpdated;
@@ -48,7 +55,9 @@ use App\Events\Users\UserDeactivated;
 use App\Events\Users\UserPasswordChanged;
 use App\Events\Users\UserRolesChanged;
 use App\Events\Users\UserUpdated;
+use App\Models\Certification;
 use App\Models\Client;
+use App\Models\ClientStatus;
 use App\Models\Communication;
 use App\Models\Equipment;
 use App\Models\EquipmentCategory;
@@ -100,6 +109,7 @@ class EventDescriptionTest extends TestCase
             ClientCreated::class => [fn () => new ClientCreated(Client::factory()->create(), null)],
             ClientUpdated::class => [fn () => new ClientUpdated(...self::updated(Client::factory()->create(), ['notes' => 'Новая заметка']), actor: null)],
             ClientDeleted::class => [fn () => new ClientDeleted(Client::factory()->create(), null)],
+            ClientCertificationsChanged::class => [fn () => new ClientCertificationsChanged(Client::factory()->create(), [Certification::factory()->create()->id], [Certification::factory()->create()->id], null)],
             CommunicationCreated::class => [fn () => new CommunicationCreated(Communication::factory()->create(), null)],
             CommunicationUpdated::class => [fn () => new CommunicationUpdated(...self::updated(Communication::factory()->create(), ['notes' => 'Перезвонить']), actor: null)],
             CommunicationDeleted::class => [function () {
@@ -137,6 +147,12 @@ class EventDescriptionTest extends TestCase
             ExerciseUpdated::class => [fn () => new ExerciseUpdated(...self::updated(Exercise::factory()->create(), ['name' => 'Всплытие с декомпрессией']), actor: null)],
             ExercisesReordered::class => [fn () => new ExercisesReordered(Exercise::factory()->create(), 'down', null)],
             ExerciseEventTypesChanged::class => [fn () => new ExerciseEventTypesChanged(Exercise::factory()->create(), [EventType::factory()->create()->id], [], null)],
+            ClientStatusCreated::class => [fn () => new ClientStatusCreated(ClientStatus::factory()->create(), null)],
+            ClientStatusUpdated::class => [fn () => new ClientStatusUpdated(...self::updated(ClientStatus::factory()->create(), ['name' => 'Ждёт сертификат']), actor: null)],
+            ClientStatusesReordered::class => [fn () => new ClientStatusesReordered(ClientStatus::factory()->create(), 'up', null)],
+            CertificationCreated::class => [fn () => new CertificationCreated(Certification::factory()->create(), null)],
+            CertificationUpdated::class => [fn () => new CertificationUpdated(...self::updated(Certification::factory()->create(), ['is_active' => false]), actor: null)],
+            CertificationsReordered::class => [fn () => new CertificationsReordered(Certification::factory()->create(), 'down', null)],
             LocationCreated::class => [fn () => new LocationCreated(Location::factory()->create(), null)],
             LocationUpdated::class => [fn () => new LocationUpdated(...self::updated(Location::factory()->create(), ['address' => 'ул. Труда, 1']), actor: null)],
             EquipmentCreated::class => [fn () => new EquipmentCreated(Equipment::factory()->create(), null)],

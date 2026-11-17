@@ -44,6 +44,13 @@ defineProps({
         <template v-else-if="name === 'exercises'">
             <path d="M6 8v8M18 8v8M3 10v4M21 10v4M6 12h12" />
         </template>
+        <template v-else-if="name === 'statuses'">
+            <path d="M5 4v16M5 5h11l-2.5 3.5L16 12H5" />
+        </template>
+        <template v-else-if="name === 'certifications'">
+            <circle cx="12" cy="9" r="5" />
+            <path d="m9.5 13.5-1.5 7 4-2 4 2-1.5-7" />
+        </template>
         <template v-else-if="name === 'users'">
             <circle cx="12" cy="9" r="3.5" />
             <path d="M5.5 19.5c1-3 3.6-4.5 6.5-4.5s5.5 1.5 6.5 4.5" />

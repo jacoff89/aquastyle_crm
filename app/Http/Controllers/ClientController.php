@@ -5,12 +5,15 @@ namespace App\Http\Controllers;
 use App\Enums\AttendanceStatus;
 use App\Enums\CommunicationChannel;
 use App\Enums\EventStatus;
+use App\Events\Clients\ClientCertificationsChanged;
 use App\Events\Clients\ClientCreated;
 use App\Events\Clients\ClientDeleted;
 use App\Events\Clients\ClientUpdated;
 use App\Http\Requests\Clients\StoreClientRequest;
 use App\Http\Requests\Clients\UpdateClientRequest;
+use App\Models\Certification;
 use App\Models\Client;
+use App\Models\ClientStatus;
 use App\Models\Communication;
 use App\Models\Event;
 use App\Models\EventClient;
@@ -60,10 +63,10 @@ class ClientController extends Controller
         $query = Client::query()->search($search);
 
         if ($search === '') {
-            $query->whereNull('parent_id')->with(['children' => fn ($children) => $children
+            $query->whereNull('parent_id')->with(['status', 'certifications', 'children.status', 'children.certifications', 'children' => fn ($children) => $children
                 ->orderBy('last_name')->orderBy('first_name')->orderBy('middle_name')->orderBy('id')]);
         } else {
-            $query->with('parent');
+            $query->with(['parent', 'status', 'certifications']);
         }
 
         foreach (self::SORTS[$sort] as $column) {
@@ -103,14 +106,19 @@ class ClientController extends Controller
         return Inertia::render('clients/Form', [
             'client' => null,
             'parent' => $parent ? $this->parentData($parent) : null,
+            ...$this->trainingOptions(null),
         ]);
     }
 
     public function store(StoreClientRequest $request): RedirectResponse|JsonResponse
     {
-        $client = new Client(Arr::except($request->validated(), ['confirm_duplicate']));
+        $client = new Client(Arr::except($request->validated(), ['confirm_duplicate', 'certification_ids']));
         $client->creator()->associate($request->user());
         $client->save();
+
+        if ($request->has('certification_ids')) {
+            $client->certifications()->sync($request->certificationIds());
+        }
 
         ClientCreated::dispatch($client, $request->user());
 
@@ -138,6 +146,8 @@ class ClientController extends Controller
                 ...$this->formData($client),
                 'fullName' => $client->fullName(),
                 'birthDateLabel' => $client->birth_date?->format('d.m.Y'),
+                'statusName' => $client->status?->name,
+                'certificationNames' => $client->certifications->pluck('name')->all(),
             ],
             'parent' => $client->parent ? $this->parentData($client->parent) : null,
             'children' => $client->children()->orderBy('last_name')->orderBy('first_name')->get()
@@ -160,14 +170,21 @@ class ClientController extends Controller
         return Inertia::render('clients/Form', [
             'client' => $this->formData($client),
             'parent' => $client->parent ? $this->parentData($client->parent) : null,
+            ...$this->trainingOptions($client),
         ]);
     }
 
     public function update(UpdateClientRequest $request, Client $client): RedirectResponse
     {
-        $client->update(Arr::except($request->validated(), ['confirm_duplicate']));
+        $client->update(Arr::except($request->validated(), ['confirm_duplicate', 'certification_ids']));
 
         ClientUpdated::dispatchChanges($client, $request->user());
+
+        if ($request->has('certification_ids')) {
+            $changes = $client->certifications()->sync($request->certificationIds());
+
+            ClientCertificationsChanged::dispatchFor($client, $changes, $request->user());
+        }
 
         return redirect()->route('clients.show', $client)->with('status', "Изменения сохранены: {$client->fullName()}.");
     }
@@ -197,6 +214,8 @@ class ClientController extends Controller
             'phone' => $client->phone,
             'email' => $client->email,
             'createdAtLabel' => $client->created_at->format('d.m.Y'),
+            'statusName' => $client->status?->name,
+            'certificationNames' => $client->certifications->pluck('name')->values(),
             'isChild' => $client->parent_id !== null,
             'parentName' => $client->relationLoaded('parent') ? $client->parent?->fullName() : null,
         ];
@@ -211,7 +230,7 @@ class ClientController extends Controller
     }
 
     /**
-     * @return array{id: int, lastName: string, firstName: string, middleName: ?string, phone: ?string, email: ?string, birthDate: ?string, notes: ?string}
+     * @return array{id: int, parentId: ?int, lastName: string, firstName: string, middleName: ?string, phone: ?string, email: ?string, birthDate: ?string, notes: ?string, clientStatusId: ?int, certificationIds: list<int>}
      */
     private function formData(Client $client): array
     {
@@ -225,6 +244,28 @@ class ClientController extends Controller
             'email' => $client->email,
             'birthDate' => $client->birth_date?->format('Y-m-d'),
             'notes' => $client->notes,
+            'clientStatusId' => $client->client_status_id,
+            'certificationIds' => $client->certifications->modelKeys(),
+        ];
+    }
+
+    /**
+     * The statuses and certifications the client form offers, in list order: the visible ones
+     * and the hidden ones the client already has, so that saving the form does not drop them.
+     *
+     * @return array{statuses: list<array{id: int, name: string, isActive: bool}>, certifications: list<array{id: int, name: string, isActive: bool}>}
+     */
+    private function trainingOptions(?Client $client): array
+    {
+        $option = fn (ClientStatus|Certification $item): array => ['id' => $item->id, 'name' => $item->name, 'isActive' => $item->is_active];
+
+        return [
+            'statuses' => ClientStatus::query()->ordered()
+                ->where(fn ($query) => $query->active()->when($client?->client_status_id, fn ($query, int $id) => $query->orWhereKey($id)))
+                ->get()->map($option)->values()->all(),
+            'certifications' => Certification::query()->ordered()
+                ->where(fn ($query) => $query->active()->when($client, fn ($query, Client $client) => $query->orWhereHas('clients', fn ($clients) => $clients->whereKey($client->id))))
+                ->get()->map($option)->values()->all(),
         ];
     }
 

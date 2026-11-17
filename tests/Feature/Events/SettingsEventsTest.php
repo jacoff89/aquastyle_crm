@@ -9,6 +9,12 @@ use App\Events\Equipment\EquipmentCategoryUpdated;
 use App\Events\Equipment\EquipmentCreated;
 use App\Events\Equipment\EquipmentStatusChanged;
 use App\Events\Equipment\EquipmentUpdated;
+use App\Events\Settings\CertificationCreated;
+use App\Events\Settings\CertificationsReordered;
+use App\Events\Settings\CertificationUpdated;
+use App\Events\Settings\ClientStatusCreated;
+use App\Events\Settings\ClientStatusesReordered;
+use App\Events\Settings\ClientStatusUpdated;
 use App\Events\Settings\EventTypeCreated;
 use App\Events\Settings\EventTypesReordered;
 use App\Events\Settings\EventTypeUpdated;
@@ -18,6 +24,8 @@ use App\Events\Settings\ExercisesReordered;
 use App\Events\Settings\ExerciseUpdated;
 use App\Events\Settings\LocationCreated;
 use App\Events\Settings\LocationUpdated;
+use App\Models\Certification;
+use App\Models\ClientStatus;
 use App\Models\Equipment;
 use App\Models\EquipmentCategory;
 use App\Models\EventType;
@@ -96,6 +104,38 @@ class SettingsEventsTest extends TestCase
 
         Event::assertNotDispatched(ExerciseUpdated::class);
         Event::assertNotDispatched(ExerciseEventTypesChanged::class);
+    }
+
+    public function test_client_statuses_announce_adding_editing_and_moving(): void
+    {
+        $admin = User::factory()->admin()->create();
+        ClientStatus::factory()->create();
+        Event::fake([ClientStatusCreated::class, ClientStatusUpdated::class, ClientStatusesReordered::class]);
+
+        $this->actingAs($admin)->post('/settings/client-statuses', ['name' => 'Ждёт сертификат'])->assertSessionHasNoErrors();
+        $status = ClientStatus::where('name', 'Ждёт сертификат')->sole();
+        $this->patch("/settings/client-statuses/{$status->id}", ['is_active' => false])->assertSessionHasNoErrors();
+        $this->patch("/settings/client-statuses/{$status->id}/position", ['direction' => 'up'])->assertRedirect();
+
+        Event::assertDispatched(ClientStatusCreated::class, fn (ClientStatusCreated $event): bool => $event->clientStatus->is($status) && $event->actor->is($admin));
+        Event::assertDispatched(ClientStatusUpdated::class, fn (ClientStatusUpdated $event): bool => $event->changes->toArray() === ['is_active' => ['old' => true, 'new' => false]]);
+        Event::assertDispatched(ClientStatusesReordered::class, fn (ClientStatusesReordered $event): bool => $event->clientStatus->is($status) && $event->direction === 'up');
+    }
+
+    public function test_certifications_announce_adding_editing_and_moving(): void
+    {
+        $admin = User::factory()->admin()->create();
+        Certification::factory()->create();
+        Event::fake([CertificationCreated::class, CertificationUpdated::class, CertificationsReordered::class]);
+
+        $this->actingAs($admin)->post('/settings/certifications', ['name' => 'Сухой костюм'])->assertSessionHasNoErrors();
+        $certification = Certification::where('name', 'Сухой костюм')->sole();
+        $this->patch("/settings/certifications/{$certification->id}", ['name' => 'Дайвер в сухом костюме'])->assertSessionHasNoErrors();
+        $this->patch("/settings/certifications/{$certification->id}/position", ['direction' => 'up'])->assertRedirect();
+
+        Event::assertDispatched(CertificationCreated::class, fn (CertificationCreated $event): bool => $event->certification->is($certification) && $event->actor->is($admin));
+        Event::assertDispatched(CertificationUpdated::class, fn (CertificationUpdated $event): bool => $event->changes->attributes() === ['name']);
+        Event::assertDispatched(CertificationsReordered::class, fn (CertificationsReordered $event): bool => $event->certification->is($certification) && $event->direction === 'up');
     }
 
     public function test_locations_announce_adding_and_editing(): void

@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Clients;
 
+use App\Models\Certification;
 use App\Models\Client;
+use App\Models\ClientStatus;
 use App\Rules\ValidPhone;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -13,6 +15,10 @@ use Illuminate\Validation\Validator;
  * always required; the phone is required unless the client has a parent. A phone that already belongs to another client is
  * accepted only when `confirm_duplicate` is sent, i.e. after the person
  * was shown the existing card and said it is a different client.
+ *
+ * A hidden status or certification can not be newly chosen, but the client keeps the ones
+ * they already have. `certification_ids`, when sent, replaces the whole list; the calendar
+ * adds a client without it.
  */
 abstract class ClientRequest extends FormRequest
 {
@@ -30,8 +36,42 @@ abstract class ClientRequest extends FormRequest
             'email' => ['nullable', 'string', 'lowercase', 'email', 'max:255'],
             'birth_date' => ['nullable', 'date_format:Y-m-d', 'after:1900-01-01', 'before_or_equal:today'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'client_status_id' => ['nullable', 'integer', Rule::in($this->selectableStatusIds())],
+            'certification_ids' => ['sometimes', 'array'],
+            'certification_ids.*' => ['integer', 'distinct', Rule::in($this->selectableCertificationIds())],
             'confirm_duplicate' => ['boolean'],
         ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'client_status_id.in' => 'Этот статус нельзя выбрать: его скрыли или удалили.',
+            'certification_ids.*.in' => 'Одну из сертификаций нельзя выбрать: её скрыли или удалили.',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'client_status_id' => 'Статус',
+            'certification_ids' => 'Сертификации',
+            'certification_ids.*' => 'Сертификация',
+        ];
+    }
+
+    /**
+     * @return list<int>
+     */
+    public function certificationIds(): array
+    {
+        return array_map('intval', $this->validated('certification_ids', []));
     }
 
     /**
@@ -79,6 +119,30 @@ abstract class ClientRequest extends FormRequest
     protected function hasChildren(): bool
     {
         return $this->ignoredClient()?->children()->exists() ?? false;
+    }
+
+    /**
+     * The statuses that can be chosen: the visible ones and the one the client already has.
+     *
+     * @return list<int>
+     */
+    private function selectableStatusIds(): array
+    {
+        return ClientStatus::query()->active()->pluck('id')
+            ->push($this->ignoredClient()?->client_status_id)
+            ->filter()->unique()->values()->all();
+    }
+
+    /**
+     * The certifications that can be given: the visible ones and those the client already holds.
+     *
+     * @return list<int>
+     */
+    private function selectableCertificationIds(): array
+    {
+        return Certification::query()->active()->pluck('id')
+            ->merge($this->ignoredClient()?->certifications()->pluck('certifications.id') ?? [])
+            ->unique()->values()->all();
     }
 
     /**

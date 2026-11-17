@@ -22,8 +22,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * in one form only, E.164 ("+79123456789"), whatever way it was typed.
  *
  * A client may have a parent (one level only). A child can be saved without a phone.
+ *
+ * A client has at most one status (where they are in their training) and any number
+ * of certifications; administrators maintain both lists in the settings.
  */
-#[Fillable(['parent_id', 'last_name', 'first_name', 'middle_name', 'phone', 'email', 'birth_date', 'notes'])]
+#[Fillable(['parent_id', 'client_status_id', 'last_name', 'first_name', 'middle_name', 'phone', 'email', 'birth_date', 'notes'])]
 class Client extends Model
 {
     /** @use HasFactory<ClientFactory> */
@@ -70,6 +73,26 @@ class Client extends Model
     public function children(): HasMany
     {
         return $this->hasMany(self::class, 'parent_id');
+    }
+
+    /**
+     * Where the client is in their training, e.g. «Ждёт сертификат».
+     *
+     * @return BelongsTo<ClientStatus, $this>
+     */
+    public function status(): BelongsTo
+    {
+        return $this->belongsTo(ClientStatus::class, 'client_status_id');
+    }
+
+    /**
+     * The certifications the client holds, in list order.
+     *
+     * @return BelongsToMany<Certification, $this>
+     */
+    public function certifications(): BelongsToMany
+    {
+        return $this->belongsToMany(Certification::class)->ordered();
     }
 
     /**

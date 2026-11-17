@@ -3,6 +3,8 @@
 namespace App\Http\Middleware;
 
 use App\Enums\Role;
+use App\Models\Certification;
+use App\Models\ClientStatus;
 use App\Models\Equipment;
 use App\Models\EventType;
 use App\Models\Exercise;
@@ -61,6 +63,8 @@ class HandleInertiaRequests extends Middleware
                 'manageInstructors' => $user?->can('viewAny', User::class) ?? false,
                 'manageEventTypes' => $user?->can('viewAny', EventType::class) ?? false,
                 'manageExercises' => $user?->can('viewAny', Exercise::class) ?? false,
+                'manageClientStatuses' => $user?->can('viewAny', ClientStatus::class) ?? false,
+                'manageCertifications' => $user?->can('viewAny', Certification::class) ?? false,
                 'manageLocations' => $user?->can('viewAny', Location::class) ?? false,
                 'viewEquipment' => $user?->can('viewAny', Equipment::class) ?? false,
                 'changeEquipmentStatus' => $user?->can('updateStatus', new Equipment) ?? false,

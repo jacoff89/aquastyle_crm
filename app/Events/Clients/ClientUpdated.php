@@ -9,7 +9,8 @@ use App\Models\Client;
 use App\Models\User;
 
 /**
- * A client's details were changed.
+ * A client's details were changed. A change of their certifications is announced
+ * by ClientCertificationsChanged.
  */
 class ClientUpdated extends AbstractDomainEvent
 {
@@ -24,6 +25,7 @@ class ClientUpdated extends AbstractDomainEvent
         'first_name' => 'имя',
         'middle_name' => 'отчество',
         'parent_id' => 'родитель',
+        'client_status_id' => 'статус',
         'phone' => 'телефон',
         'email' => 'email',
         'birth_date' => 'дата рождения',

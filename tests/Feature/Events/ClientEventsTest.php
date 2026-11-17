@@ -2,13 +2,16 @@
 
 namespace Tests\Feature\Events;
 
+use App\Events\Clients\ClientCertificationsChanged;
 use App\Events\Clients\ClientCreated;
 use App\Events\Clients\ClientDeleted;
 use App\Events\Clients\ClientUpdated;
 use App\Events\Communications\CommunicationCreated;
 use App\Events\Communications\CommunicationDeleted;
 use App\Events\Communications\CommunicationUpdated;
+use App\Models\Certification;
 use App\Models\Client;
+use App\Models\ClientStatus;
 use App\Models\Communication;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -80,6 +83,39 @@ class ClientEventsTest extends TestCase
         $this->actingAs(User::factory()->create())->put("/clients/{$client->id}", $this->clientPayload())->assertSessionHasNoErrors();
 
         Event::assertNotDispatched(ClientUpdated::class);
+    }
+
+    public function test_changing_status_and_certifications_of_a_client_announces_both(): void
+    {
+        $user = User::factory()->create();
+        $diver = Certification::factory()->create();
+        $drySuit = Certification::factory()->create();
+        $status = ClientStatus::factory()->create();
+        $client = Client::factory()->hasAttached($diver)->create($this->clientPayload());
+        Event::fake([ClientUpdated::class, ClientCertificationsChanged::class]);
+
+        $this->actingAs($user)
+            ->put("/clients/{$client->id}", [...$this->clientPayload(), 'client_status_id' => $status->id, 'certification_ids' => [$drySuit->id]])
+            ->assertSessionHasNoErrors();
+
+        Event::assertDispatched(ClientUpdated::class, fn (ClientUpdated $event): bool => $event->changes->toArray() === ['client_status_id' => ['old' => null, 'new' => $status->id]]);
+        Event::assertDispatched(ClientCertificationsChanged::class, fn (ClientCertificationsChanged $event): bool => $event->client->is($client)
+            && $event->attachedCertificationIds === [$drySuit->id]
+            && $event->detachedCertificationIds === [$diver->id]
+            && $event->actor->is($user));
+    }
+
+    public function test_saving_the_same_certifications_is_not_announced(): void
+    {
+        $diver = Certification::factory()->create();
+        $client = Client::factory()->hasAttached($diver)->create($this->clientPayload());
+        Event::fake([ClientCertificationsChanged::class]);
+
+        $this->actingAs(User::factory()->create())
+            ->put("/clients/{$client->id}", [...$this->clientPayload(), 'certification_ids' => [$diver->id]])
+            ->assertSessionHasNoErrors();
+
+        Event::assertNotDispatched(ClientCertificationsChanged::class);
     }
 
     public function test_deleting_a_client_announces_it(): void
