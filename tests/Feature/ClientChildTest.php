@@ -23,7 +23,6 @@ class ClientChildTest extends TestCase
         $child = Client::query()->where('first_name', 'Петя')->firstOrFail();
         $this->assertTrue($child->parent->is($parent));
         $this->assertNull($child->phone);
-        $this->assertNull($child->phone_digits);
     }
 
     public function test_phone_is_required_without_a_parent(): void

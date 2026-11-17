@@ -14,6 +14,8 @@ class ClientDuplicatePhoneTest extends TestCase
 
     private const DUPLICATE_MESSAGE = 'Клиент с таким телефоном уже есть. Проверьте, что это не дубль.';
 
+    private const INVALID_PHONE_MESSAGE = 'Введите телефон, например +7 912 345-67-89. Иностранный номер пишется с «+» и кодом страны.';
+
     public function test_guest_can_not_look_up_duplicates(): void
     {
         $this->getJson('/clients/duplicates?phone=%2B79123456789')->assertUnauthorized();
@@ -133,7 +135,7 @@ class ClientDuplicatePhoneTest extends TestCase
             ->put("/clients/{$client->id}", $this->validPayload(['phone' => '+7 912 345-67-89']))
             ->assertSessionHasNoErrors();
 
-        $this->assertSame('+7 912 345-67-89', $client->fresh()->phone);
+        $this->assertSame('+79123456789', $client->fresh()->phone);
     }
 
     public function test_editing_to_the_phone_of_another_client_needs_confirmation(): void
@@ -146,32 +148,32 @@ class ClientDuplicatePhoneTest extends TestCase
             ->put("/clients/{$client->id}", $this->validPayload())
             ->assertSessionHasErrors(['phone' => self::DUPLICATE_MESSAGE]);
 
-        $this->assertSame('+7 900 000-00-00', $client->fresh()->phone);
+        $this->assertSame('+79000000000', $client->fresh()->phone);
 
         $this->actingAs($user)
             ->put("/clients/{$client->id}", $this->validPayload(['confirm_duplicate' => true]))
             ->assertSessionHasNoErrors();
 
-        $this->assertSame('+7 912 345-67-89', $client->fresh()->phone);
+        $this->assertSame('+79123456789', $client->fresh()->phone);
     }
 
-    public function test_phone_digits_follow_the_phone_when_it_changes(): void
+    public function test_phone_is_kept_in_one_form_when_it_changes(): void
     {
         $client = Client::factory()->create(['phone' => '+7 900 000-00-00']);
-        $this->assertSame('79000000000', $client->phone_digits);
+        $this->assertSame('+79000000000', $client->phone);
 
         $client->update(['phone' => '8 (912) 345-67-89']);
 
-        $this->assertSame('79123456789', $client->fresh()->phone_digits);
+        $this->assertSame('+79123456789', $client->fresh()->phone);
     }
 
-    public function test_phone_must_have_between_seven_and_fifteen_digits(): void
+    public function test_phone_must_be_a_valid_number(): void
     {
         $user = User::factory()->create();
 
         $this->actingAs($user)
             ->post('/clients', $this->validPayload(['phone' => '+1 23 45']))
-            ->assertSessionHasErrors(['phone' => 'Телефон должен содержать от 7 до 15 цифр.']);
+            ->assertSessionHasErrors(['phone' => self::INVALID_PHONE_MESSAGE]);
 
         $this->actingAs($user)
             ->post('/clients', $this->validPayload(['phone' => '+1 234 5678']))
