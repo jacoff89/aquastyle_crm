@@ -63,6 +63,7 @@ class HandleInertiaRequests extends Middleware
                 'manageExercises' => $user?->can('viewAny', Exercise::class) ?? false,
                 'manageLocations' => $user?->can('viewAny', Location::class) ?? false,
                 'viewEquipment' => $user?->can('viewAny', Equipment::class) ?? false,
+                'changeEquipmentStatus' => $user?->can('updateStatus', new Equipment) ?? false,
                 'manageEquipment' => $user?->can('create', Equipment::class) ?? false,
             ],
             'unreadNotices' => fn (): int => $user === null ? 0 : Notice::unreadCountFor($user),

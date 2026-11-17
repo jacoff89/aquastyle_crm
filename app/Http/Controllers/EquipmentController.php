@@ -8,6 +8,7 @@ use App\Events\Equipment\EquipmentCreated;
 use App\Events\Equipment\EquipmentUpdated;
 use App\Http\Requests\Equipment\StoreEquipmentRequest;
 use App\Http\Requests\Equipment\UpdateEquipmentRequest;
+use App\Http\Requests\Equipment\UpdateEquipmentStatusRequest;
 use App\Models\Equipment;
 use App\Models\EquipmentCategory;
 use App\Models\Location;
@@ -20,7 +21,7 @@ use Inertia\Response;
 
 /**
  * The equipment registry. Each item is kept at a location and may be assigned to an instructor.
- * Items are written off rather than deleted.
+ * Items are written off rather than deleted. Instructors may change an item's status, nothing else.
  */
 class EquipmentController extends Controller
 {
@@ -102,6 +103,15 @@ class EquipmentController extends Controller
         EquipmentUpdated::dispatchChanges($equipment, $request->user());
 
         return redirect()->route('equipment.index')->with('status', "Изменения сохранены: {$equipment->name}.");
+    }
+
+    public function updateStatus(UpdateEquipmentStatusRequest $request, Equipment $equipment): RedirectResponse
+    {
+        $equipment->update($request->validated());
+
+        EquipmentUpdated::dispatchChanges($equipment, $request->user());
+
+        return back()->with('status', "Состояние изменено: {$equipment->name} — ".mb_strtolower($equipment->status->label()).'.');
     }
 
     /**

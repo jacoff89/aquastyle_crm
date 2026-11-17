@@ -235,6 +235,28 @@ class EquipmentControllerTest extends TestCase
         $this->assertSame('Регулятор', $item->fresh()->name);
     }
 
+    public function test_instructor_changes_only_the_status_of_equipment(): void
+    {
+        $item = Equipment::factory()->create(['name' => 'Регулятор', 'status' => EquipmentStatus::InUse]);
+
+        $this->actingAs(User::factory()->create())
+            ->patch("/equipment/{$item->id}/status", ['status' => 'repair', 'name' => 'Другое'])
+            ->assertRedirect();
+
+        $item->refresh();
+        $this->assertSame(EquipmentStatus::Repair, $item->status);
+        $this->assertSame('Регулятор', $item->name);
+    }
+
+    public function test_status_must_be_a_known_one(): void
+    {
+        $item = Equipment::factory()->create();
+
+        $this->actingAs(User::factory()->create())
+            ->patch("/equipment/{$item->id}/status", ['status' => 'lost'])
+            ->assertSessionHasErrors('status');
+    }
+
     public function test_guest_is_redirected_to_login(): void
     {
         $this->get('/equipment')->assertRedirect('/login');

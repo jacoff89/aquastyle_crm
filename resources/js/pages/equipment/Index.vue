@@ -1,5 +1,5 @@
 <script setup>
-import { Link, useForm, usePage } from '@inertiajs/vue3';
+import { Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, nextTick, ref } from 'vue';
 import AppIcon from '../../components/AppIcon.vue';
 import FormField from '../../components/FormField.vue';
@@ -26,6 +26,13 @@ const page = usePage();
 
 /** Инструктор видит реестр, но добавлять и менять снаряжение и категории может только администратор. */
 const canManage = computed(() => page.props.can.manageEquipment);
+
+/** Состояние снаряжения могут менять и инструкторы. */
+const canChangeStatus = computed(() => page.props.can.changeEquipmentStatus);
+
+const changeStatus = (item, status) => {
+    router.patch(`/equipment/${item.id}/status`, { status }, { preserveScroll: true, preserveState: true });
+};
 
 /** Фильтр можно открыть ссылкой: /equipment?location=3, /equipment?instructor=5, /equipment?category=2. */
 const query = new URLSearchParams(page.url.split('?')[1] ?? '');
@@ -345,7 +352,19 @@ const cancelRenamingOnEscape = (event) => {
                                 {{ item.instructorName ?? '—' }}
                             </td>
                             <td class="sm:px-4 sm:py-3">
-                                <span class="inline-block rounded px-2 py-0.5 text-xs" :class="statusClass(item.status)">{{ item.statusLabel }}</span>
+                                <template v-if="canChangeStatus">
+                                    <label :for="`equipment-status-${item.id}`" class="sr-only">Состояние: {{ item.name }}</label>
+                                    <select
+                                        :id="`equipment-status-${item.id}`"
+                                        :value="item.status"
+                                        class="cursor-pointer rounded border-0 py-0.5 pr-7 pl-2 text-xs"
+                                        :class="statusClass(item.status)"
+                                        @change="changeStatus(item, $event.target.value)"
+                                    >
+                                        <option v-for="status in statuses" :key="status.value" :value="status.value">{{ status.label }}</option>
+                                    </select>
+                                </template>
+                                <span v-else class="inline-block rounded px-2 py-0.5 text-xs" :class="statusClass(item.status)">{{ item.statusLabel }}</span>
                             </td>
                         </tr>
                         <tr v-if="visibleEquipment.length === 0">

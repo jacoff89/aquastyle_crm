@@ -90,6 +90,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('locations/{location}', [LocationController::class, 'update'])->name('locations.update');
 
     Route::resource('equipment', EquipmentController::class)->except(['show', 'destroy']);
+    Route::patch('equipment/{equipment}/status', [EquipmentController::class, 'updateStatus'])->name('equipment.status.update');
     Route::post('equipment-categories', [EquipmentCategoryController::class, 'store'])->name('equipment-categories.store');
     Route::patch('equipment-categories/{category}', [EquipmentCategoryController::class, 'update'])->name('equipment-categories.update');
 
