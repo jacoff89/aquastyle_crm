@@ -39,7 +39,7 @@ class ClientSearchControllerTest extends TestCase
             ->assertOk()
             ->assertJsonCount(2, 'clients')
             ->assertJsonPath('clients.0.name', 'Иванов Анна Сергеевна')
-            ->assertJsonPath('clients.0.phone', '+7 912 000-00-01')
+            ->assertJsonPath('clients.0.phone', '+79120000001')
             ->assertJsonPath('clients.1.name', 'Иванов Пётр');
     }
 
@@ -59,7 +59,7 @@ class ClientSearchControllerTest extends TestCase
         $client = Client::factory()->create(['phone' => '+7 (912) 345-67-89']);
         Client::factory()->create(['phone' => '+7 912 000-00-00']);
 
-        foreach (['9123456789', '345-67', '+7 (912) 345'] as $term) {
+        foreach (['9123456789', '89123456789', '345-67', '+7 (912) 345'] as $term) {
             $this->actingAs($this->user())
                 ->getJson('/clients/search?q='.urlencode($term))
                 ->assertJsonCount(1, 'clients')

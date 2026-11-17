@@ -25,7 +25,7 @@ class ProfileTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('profile/Edit')
                 ->where('profile.name', 'Иван Сидоров')
-                ->where('profile.phone', '+7 900 000-00-00')
+                ->where('profile.phone', '+79000000000')
                 ->where('profile.role', 'Инструктор'));
     }
 
@@ -70,7 +70,25 @@ class ProfileTest extends TestCase
             ->assertSessionHas('status', 'Профиль сохранён.');
 
         $this->assertSame('Новое Имя', $user->fresh()->name);
-        $this->assertSame('+7 911 111-11-11', $user->fresh()->phone);
+        $this->assertSame('+79111111111', $user->fresh()->phone);
+    }
+
+    public function test_phone_is_saved_in_one_form_and_must_be_valid(): void
+    {
+        $user = User::factory()->create(['phone' => '+79000000000']);
+
+        $this->actingAs($user)
+            ->from('/profile')
+            ->patch('/profile', ['name' => $user->name, 'phone' => '912-abc-45'])
+            ->assertSessionHasErrors(['phone' => 'Введите телефон, например +7 912 345-67-89. Иностранный номер пишется с «+» и кодом страны.']);
+
+        $this->assertSame('+79000000000', $user->fresh()->phone);
+
+        $this->actingAs($user)
+            ->patch('/profile', ['name' => $user->name, 'phone' => '8 (912) 345-67-89'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('+79123456789', $user->fresh()->phone);
     }
 
     public function test_profile_update_can_not_change_role(): void

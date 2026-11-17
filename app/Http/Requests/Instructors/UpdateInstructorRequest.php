@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Instructors;
 
 use App\Models\User;
+use App\Rules\ValidPhone;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -29,7 +30,7 @@ class UpdateInstructorRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'last_name' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class)->ignore($this->instructor())],
-            'phone' => ['nullable', 'string', 'max:32'],
+            'phone' => ['nullable', 'string', 'max:32', new ValidPhone],
             'color' => ['required', 'string', 'regex:/^#[0-9a-f]{6}$/'],
             'is_active' => ['boolean'],
             'notes' => ['nullable', 'string', 'max:2000'],

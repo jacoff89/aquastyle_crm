@@ -61,7 +61,7 @@ class DatabaseSeederTest extends TestCase
         $this->seed(DatabaseSeeder::class);
 
         $this->assertDatabaseCount('clients', 30);
-        $this->assertSame(0, Client::query()->where('phone_digits', '')->count());
+        $this->assertTrue(Client::query()->get()->every(fn (Client $client) => preg_match('/^\+7\d{10}$/', $client->phone) === 1));
         $this->assertTrue(Client::query()->with('creator')->get()->every(fn (Client $client) => $client->creator->email === 'admin@example.com'));
     }
 

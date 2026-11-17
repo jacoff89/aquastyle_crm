@@ -2,6 +2,7 @@
 import { Link } from '@inertiajs/vue3';
 import InstructorSchedule from '../../components/InstructorSchedule.vue';
 import AppLayout from '../../layouts/AppLayout.vue';
+import { formatPhone } from '../../phone.js';
 
 defineProps({
     instructor: { type: Object, required: true },
@@ -42,7 +43,7 @@ defineProps({
                     </div>
                     <div>
                         <dt class="text-muted">Телефон</dt>
-                        <dd class="mt-0.5 text-ink">{{ instructor.phone || '—' }}</dd>
+                        <dd class="mt-0.5 text-ink">{{ formatPhone(instructor.phone) || '—' }}</dd>
                     </div>
                     <div>
                         <dt class="text-muted">Цвет в календаре</dt>

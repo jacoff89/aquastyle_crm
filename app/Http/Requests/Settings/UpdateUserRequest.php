@@ -4,6 +4,7 @@ namespace App\Http\Requests\Settings;
 
 use App\Enums\Role;
 use App\Models\User;
+use App\Rules\ValidPhone;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\Rule;
@@ -29,7 +30,7 @@ class UpdateUserRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'last_name' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class)->ignore($this->editedUser())],
-            'phone' => ['nullable', 'string', 'max:32'],
+            'phone' => ['nullable', 'string', 'max:32', new ValidPhone],
             'roles' => ['required', 'array', 'min:1'],
             'roles.*' => ['distinct', Rule::enum(Role::class)],
             'color' => [Rule::requiredIf($this->hasInstructorRole()), 'nullable', 'string', 'regex:/^#[0-9a-f]{6}$/'],

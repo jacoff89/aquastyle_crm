@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Actions\ListInstructorSchedule;
 use App\Enums\ScheduleRange;
 use App\Events\Users\UserUpdated;
+use App\Rules\ValidPhone;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -36,7 +37,7 @@ class ProfileController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:32'],
+            'phone' => ['nullable', 'string', 'max:32', new ValidPhone],
         ]);
 
         $request->user()->update($validated);

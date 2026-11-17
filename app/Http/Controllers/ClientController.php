@@ -45,7 +45,7 @@ class ClientController extends Controller
      */
     private const SORTS = [
         'name' => ['last_name', 'first_name', 'middle_name'],
-        'phone' => ['phone_digits'],
+        'phone' => ['phone'],
         'created' => ['created_at'],
     ];
 

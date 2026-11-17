@@ -96,7 +96,7 @@ class UserEventsTest extends TestCase
             ->assertSessionHasNoErrors();
 
         Event::assertDispatched(UserUpdated::class, fn (UserUpdated $event): bool => $event->user->is($user)
-            && $event->changes->toArray() === ['phone' => ['old' => '+7 900 000-00-00', 'new' => '+7 912 345-67-89']]
+            && $event->changes->toArray() === ['phone' => ['old' => '+79000000000', 'new' => '+79123456789']]
             && $event->actor->is($admin));
         Event::assertDispatched(UserPasswordChanged::class, fn (UserPasswordChanged $event): bool => $event->user->is($user) && ! $event->changedByOwner());
     }

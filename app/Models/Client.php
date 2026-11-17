@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
+use App\Casts\PhoneNumber;
 use Database\Factories\ClientFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,8 +18,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * A person who attends the dive center's classes. Clients are soft-deleted,
  * so the history of their classes stays intact.
  *
- * The phone is the main key for search and for finding duplicates. It is kept
- * as typed, and `phone_digits` holds its normalized form for matching.
+ * The phone is the main key for search and for finding duplicates. It is stored
+ * in one form only, E.164 ("+79123456789"), whatever way it was typed.
  *
  * A client may have a parent (one level only). A child can be saved without a phone.
  */
@@ -38,40 +38,8 @@ class Client extends Model
     {
         return [
             'birth_date' => 'date',
+            'phone' => PhoneNumber::class,
         ];
-    }
-
-    /**
-     * Keep the normalized phone in step with the phone as typed. A mutator is used
-     * instead of a model event, so that seeding without events fills it in too.
-     *
-     * @return Attribute<?string, ?string>
-     */
-    protected function phone(): Attribute
-    {
-        return Attribute::set(fn (?string $value): array => [
-            'phone' => $value,
-            'phone_digits' => $value === null ? null : static::normalizePhone($value),
-        ]);
-    }
-
-    /**
-     * Reduce a phone number to digits so that "+7 912 345-67-89", "8 (912) 345-67-89"
-     * and "9123456789" are the same number. Russian numbers are brought to the 7XXXXXXXXXX form.
-     */
-    public static function normalizePhone(string $phone): string
-    {
-        $digits = (string) preg_replace('/\D+/', '', $phone);
-
-        if (strlen($digits) === 11 && str_starts_with($digits, '8')) {
-            return '7'.substr($digits, 1);
-        }
-
-        if (strlen($digits) === 10) {
-            return '7'.$digits;
-        }
-
-        return $digits;
     }
 
     /**
@@ -156,7 +124,12 @@ class Client extends Model
                 $digits = preg_replace('/\D+/', '', $word);
 
                 if ($digits !== '') {
-                    $query->orWhereRaw("phone_digits like ? escape '!'", ['%'.$digits.'%']);
+                    $query->orWhereRaw("phone like ? escape '!'", ['%'.$digits.'%']);
+
+                    // "8912…" is how a Russian number is often typed; it is stored as "+7912…".
+                    if (str_starts_with($digits, '8')) {
+                        $query->orWhereRaw("phone like ? escape '!'", ['%7'.substr($digits, 1).'%']);
+                    }
                 }
             });
         }
@@ -170,7 +143,15 @@ class Client extends Model
     #[Scope]
     protected function samePhoneAs(Builder $query, string $phone): void
     {
-        $query->where('phone_digits', static::normalizePhone($phone));
+        $normalized = PhoneNumber::normalize($phone);
+
+        if ($normalized === null) {
+            $query->whereRaw('0 = 1');
+
+            return;
+        }
+
+        $query->where('phone', $normalized);
     }
 
     /**

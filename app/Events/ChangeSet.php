@@ -27,7 +27,7 @@ final class ChangeSet implements Arrayable, JsonSerializable
     /**
      * @var list<string>
      */
-    private const IGNORED = ['created_at', 'updated_at', 'password', 'remember_token', 'phone_digits'];
+    private const IGNORED = ['created_at', 'updated_at', 'password', 'remember_token'];
 
     /**
      * @param  array<string, array{old: mixed, new: mixed}>  $changes

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Clients;
 
 use App\Models\Client;
+use App\Rules\ValidPhone;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -25,7 +26,7 @@ abstract class ClientRequest extends FormRequest
             'first_name' => ['required', 'string', 'max:100'],
             'middle_name' => ['nullable', 'string', 'max:100'],
             'parent_id' => ['nullable', 'integer', Rule::exists('clients', 'id')->whereNull('parent_id')->whereNull('deleted_at'), Rule::notIn([$this->ignoredClient()?->getKey()])],
-            'phone' => [Rule::requiredIf(! $this->filled('parent_id')), 'nullable', 'string', 'max:32', 'regex:/^\+?[0-9\s().\-]+$/'],
+            'phone' => [Rule::requiredIf(! $this->filled('parent_id')), 'nullable', 'string', 'max:32', new ValidPhone],
             'email' => ['nullable', 'string', 'lowercase', 'email', 'max:255'],
             'birth_date' => ['nullable', 'date_format:Y-m-d', 'after:1900-01-01', 'before_or_equal:today'],
             'notes' => ['nullable', 'string', 'max:2000'],
@@ -45,14 +46,6 @@ abstract class ClientRequest extends FormRequest
                 }
 
                 if ($validator->errors()->has('phone') || ! $this->filled('phone')) {
-                    return;
-                }
-
-                $digits = Client::normalizePhone($this->string('phone')->toString());
-
-                if (strlen($digits) < 7 || strlen($digits) > 15) {
-                    $validator->errors()->add('phone', 'Телефон должен содержать от 7 до 15 цифр.');
-
                     return;
                 }
 

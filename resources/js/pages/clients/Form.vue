@@ -6,6 +6,7 @@ import PrimaryButton from '../../components/PrimaryButton.vue';
 import TextArea from '../../components/TextArea.vue';
 import TextInput from '../../components/TextInput.vue';
 import AppLayout from '../../layouts/AppLayout.vue';
+import { formatPhone } from '../../phone.js';
 
 const props = defineProps({
     client: { type: Object, default: null },
@@ -22,7 +23,7 @@ const form = useForm({
     last_name: props.client?.lastName ?? '',
     first_name: props.client?.firstName ?? '',
     middle_name: props.client?.middleName ?? '',
-    phone: props.client?.phone ?? '',
+    phone: formatPhone(props.client?.phone),
     email: props.client?.email ?? '',
     birth_date: props.client?.birthDate ?? '',
     notes: props.client?.notes ?? '',
@@ -206,7 +207,7 @@ const submit = () => {
                                     @click="selectParent(candidate)"
                                 >
                                     {{ candidate.name }}
-                                    <span v-if="candidate.phone" class="text-muted"> · {{ candidate.phone }}</span>
+                                    <span v-if="candidate.phone" class="text-muted"> · {{ formatPhone(candidate.phone) }}</span>
                                 </button>
                             </li>
                         </ul>
@@ -216,7 +217,7 @@ const submit = () => {
                 <FormField
                     id="phone"
                     label="Телефон"
-                    hint="По телефону ищем клиента и находим повторные записи."
+                    hint="По телефону ищем клиента и находим повторные записи. Иностранный номер — с «+» и кодом страны."
                     :error="form.errors.phone"
                 >
                     <TextInput
@@ -246,7 +247,7 @@ const submit = () => {
                             >
                                 {{ duplicate.name }}
                             </Link>
-                            <span class="text-amber-800"> · {{ duplicate.phone }}</span>
+                            <span class="text-amber-800"> · {{ formatPhone(duplicate.phone) }}</span>
                         </li>
                     </ul>
                     <label class="mt-3 flex items-start gap-2">

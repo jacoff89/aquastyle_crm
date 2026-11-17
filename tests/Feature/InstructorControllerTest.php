@@ -86,7 +86,7 @@ class InstructorControllerTest extends TestCase
 
         $this->assertSame('Ирина Волкова', $instructor->name);
         $this->assertSame('Волкова', $instructor->last_name);
-        $this->assertSame('+7 912 345-67-89', $instructor->phone);
+        $this->assertSame('+79123456789', $instructor->phone);
         $this->assertSame('#0891b2', $instructor->color);
         $this->assertSame('Ведёт детские группы', $instructor->notes);
         $this->assertEquals([Role::Instructor], $instructor->roles->all());
@@ -165,6 +165,32 @@ class InstructorControllerTest extends TestCase
         $this->assertDatabaseMissing('users', ['email' => 'irina@aquastyle74.ru']);
     }
 
+    public function test_phone_is_saved_in_one_form(): void
+    {
+        $this->actingAs(User::factory()->admin()->create())
+            ->post('/instructors', $this->validPayload(['phone' => '8 (912) 345-67-89']))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('+79123456789', User::where('email', 'irina@aquastyle74.ru')->sole()->phone);
+    }
+
+    public function test_foreign_phone_must_start_with_a_plus(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)
+            ->post('/instructors', $this->validPayload(['phone' => '44 20 7946 0958']))
+            ->assertSessionHasErrors(['phone' => 'Введите телефон, например +7 912 345-67-89. Иностранный номер пишется с «+» и кодом страны.']);
+
+        $this->assertDatabaseMissing('users', ['email' => 'irina@aquastyle74.ru']);
+
+        $this->actingAs($admin)
+            ->post('/instructors', $this->validPayload(['phone' => '+44 20 7946 0958']))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('+442079460958', User::where('email', 'irina@aquastyle74.ru')->sole()->phone);
+    }
+
     public function test_show_page_lists_instructor_contacts_without_password(): void
     {
         $instructor = User::factory()->create([
@@ -180,7 +206,7 @@ class InstructorControllerTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('instructors/Show')
                 ->where('instructor.name', 'Ирина')
-                ->where('instructor.phone', '+7 912 345-67-89')
+                ->where('instructor.phone', '+79123456789')
                 ->where('instructor.color', '#16a34a')
                 ->where('instructor.notes', 'Ведёт детские группы')
                 ->where('instructor.isActive', true)
@@ -316,7 +342,7 @@ class InstructorControllerTest extends TestCase
 
         $instructor->refresh();
         $this->assertSame('irina@aquastyle74.ru', $instructor->email);
-        $this->assertSame('+7 912 345-67-89', $instructor->phone);
+        $this->assertSame('+79123456789', $instructor->phone);
         $this->assertSame('#0891b2', $instructor->color);
         $this->assertSame('Ведёт детские группы', $instructor->notes);
         $this->assertTrue(Hash::check('password', $instructor->password));

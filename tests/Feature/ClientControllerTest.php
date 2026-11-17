@@ -51,7 +51,7 @@ class ClientControllerTest extends TestCase
                 ->has('clients.data', 3)
                 ->where('clients.total', 3)
                 ->where('clients.data.0.name', 'Иванов Анна Сергеевна')
-                ->where('clients.data.0.phone', '+7 912 000-00-01')
+                ->where('clients.data.0.phone', '+79120000001')
                 ->where('clients.data.0.email', 'anna@example.com')
                 ->where('clients.data.1.name', 'Иванов Пётр')
                 ->where('clients.data.2.name', 'Петров Пётр')
@@ -154,7 +154,7 @@ class ClientControllerTest extends TestCase
     {
         Client::factory()->create(['last_name' => 'Иванов', 'phone' => '8 (912) 345-67-89']);
 
-        foreach (['+79123456789', '9123456789', '912 345', '345-67-89'] as $term) {
+        foreach (['+79123456789', '89123456789', '9123456789', '912 345', '345-67-89'] as $term) {
             $this->actingAs($this->user())
                 ->get('/clients?'.http_build_query(['search' => $term]))
                 ->assertInertia(fn (Assert $page) => $page->where('clients.total', 1));
@@ -202,7 +202,6 @@ class ClientControllerTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->has('clients.data.0', fn (Assert $client) => $client
                     ->hasAll(['id', 'name', 'phone', 'email', 'createdAtLabel', 'isChild', 'parentName'])
-                    ->missing('phone_digits')
                     ->missing('notes')));
     }
 
@@ -228,8 +227,7 @@ class ClientControllerTest extends TestCase
 
         $this->assertSame('Пётр', $client->first_name);
         $this->assertSame('Сергеевич', $client->middle_name);
-        $this->assertSame('+7 912 345-67-89', $client->phone);
-        $this->assertSame('79123456789', $client->phone_digits);
+        $this->assertSame('+79123456789', $client->phone);
         $this->assertSame('petr@example.com', $client->email);
         $this->assertSame('1990-05-17', $client->birth_date->toDateString());
         $this->assertSame('Первый раз на воде', $client->notes);
@@ -244,7 +242,7 @@ class ClientControllerTest extends TestCase
             ->postJson('/clients', ['last_name' => 'Иванов', 'first_name' => 'Пётр', 'phone' => '+7 912 345-67-89'])
             ->assertCreated()
             ->assertJsonPath('client.name', 'Иванов Пётр')
-            ->assertJsonPath('client.phone', '+7 912 345-67-89')
+            ->assertJsonPath('client.phone', '+79123456789')
             ->assertJsonPath('client.id', Client::sole()->id)
             ->assertJsonCount(3, 'client');
 
@@ -268,6 +266,40 @@ class ClientControllerTest extends TestCase
             ->assertCreated();
 
         $this->assertDatabaseCount('clients', 2);
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function phonesTypedDifferently(): array
+    {
+        return [
+            'with eight and brackets' => ['8 (912) 345-67-89', '+79123456789'],
+            'without country code' => ['912 345 67 89', '+79123456789'],
+            'international with spaces' => ['+7 912 345-67-89', '+79123456789'],
+            'foreign number with plus' => ['+1 234 567 8901', '+12345678901'],
+        ];
+    }
+
+    #[DataProvider('phonesTypedDifferently')]
+    public function test_phone_is_saved_in_one_form_however_it_was_typed(string $typed, string $stored): void
+    {
+        $this->actingAs($this->user())
+            ->post('/clients', [...$this->validPayload(), 'phone' => $typed])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame($stored, Client::sole()->phone);
+    }
+
+    public function test_update_with_the_same_number_typed_another_way_changes_nothing(): void
+    {
+        $client = Client::factory()->create(['phone' => '+79123456789']);
+
+        $this->actingAs($this->user())
+            ->put("/clients/{$client->id}", [...$this->validPayload(), 'phone' => '8 (912) 345-67-89'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('+79123456789', $client->fresh()->phone);
     }
 
     public function test_json_request_is_validated_like_the_form(): void
@@ -323,6 +355,7 @@ class ClientControllerTest extends TestCase
             'phone with letters' => [['phone' => '912-abc-45'], 'phone'],
             'phone too short' => [['phone' => '12-34'], 'phone'],
             'phone too long' => [['phone' => '+7 912 345 67 89 12 34 5'], 'phone'],
+            'foreign phone without plus' => [['phone' => '44 20 7946 0958'], 'phone'],
             'email without domain' => [['email' => 'petr@'], 'email'],
             'birth date in the future' => [['birth_date' => '2999-01-01'], 'birth_date'],
             'birth date before 1900' => [['birth_date' => '1899-12-31'], 'birth_date'],
@@ -364,12 +397,11 @@ class ClientControllerTest extends TestCase
                 ->component('clients/Show')
                 ->where('client.id', $client->id)
                 ->where('client.fullName', 'Иванов Пётр Сергеевич')
-                ->where('client.phone', '+7 912 345-67-89')
+                ->where('client.phone', '+79123456789')
                 ->where('client.email', 'petr@example.com')
                 ->where('client.birthDate', '1990-05-17')
                 ->where('client.birthDateLabel', '17.05.1990')
-                ->where('client.notes', 'Первый раз на воде')
-                ->missing('client.phone_digits'));
+                ->where('client.notes', 'Первый раз на воде'));
     }
 
     public function test_only_administrator_is_offered_deletion(): void
@@ -414,8 +446,7 @@ class ClientControllerTest extends TestCase
                 ->where('client.id', $client->id)
                 ->where('client.lastName', 'Иванов')
                 ->where('client.firstName', 'Пётр')
-                ->where('client.birthDate', '1990-05-17')
-                ->missing('client.phone_digits'));
+                ->where('client.birthDate', '1990-05-17'));
     }
 
     #[DataProvider('everyRole')]
@@ -430,8 +461,7 @@ class ClientControllerTest extends TestCase
 
         $client->refresh();
         $this->assertSame('Иванов', $client->last_name);
-        $this->assertSame('+7 912 345-67-89', $client->phone);
-        $this->assertSame('79123456789', $client->phone_digits);
+        $this->assertSame('+79123456789', $client->phone);
         $this->assertSame('petr@example.com', $client->email);
     }
 

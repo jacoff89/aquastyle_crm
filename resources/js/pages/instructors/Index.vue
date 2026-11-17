@@ -2,6 +2,7 @@
 import { Link } from '@inertiajs/vue3';
 import AppIcon from '../../components/AppIcon.vue';
 import AppLayout from '../../layouts/AppLayout.vue';
+import { formatPhone } from '../../phone.js';
 
 defineProps({
     instructors: { type: Array, required: true },
@@ -68,7 +69,7 @@ defineProps({
                         </td>
                         <td class="hidden px-4 py-3 text-muted md:table-cell">
                             <div>{{ instructor.email }}</div>
-                            <div v-if="instructor.phone">{{ instructor.phone }}</div>
+                            <div v-if="instructor.phone">{{ formatPhone(instructor.phone) }}</div>
                         </td>
                         <td class="sm:px-4 sm:py-3">
                             <span

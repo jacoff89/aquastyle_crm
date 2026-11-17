@@ -7,6 +7,7 @@ import PrimaryButton from '../../../components/PrimaryButton.vue';
 import TextArea from '../../../components/TextArea.vue';
 import TextInput from '../../../components/TextInput.vue';
 import AppLayout from '../../../layouts/AppLayout.vue';
+import { formatPhone } from '../../../phone.js';
 
 const props = defineProps({
     user: { type: Object, default: null },
@@ -20,7 +21,7 @@ const form = useForm({
     name: props.user?.name ?? '',
     last_name: props.user?.lastName ?? '',
     email: props.user?.email ?? '',
-    phone: props.user?.phone ?? '',
+    phone: formatPhone(props.user?.phone),
     roles: [...(props.user?.roles ?? ['instructor'])],
     color: props.user?.color ?? '#0891b2',
     is_active: props.user?.isActive ?? true,
@@ -77,7 +78,7 @@ const submit = () => {
                         />
                     </FormField>
 
-                    <FormField id="phone" label="Телефон" :error="form.errors.phone">
+                    <FormField id="phone" label="Телефон" hint="Иностранный номер — с «+» и кодом страны." :error="form.errors.phone">
                         <TextInput id="phone" v-model="form.phone" type="tel" autocomplete="off" :invalid="Boolean(form.errors.phone)" />
                     </FormField>
                 </div>

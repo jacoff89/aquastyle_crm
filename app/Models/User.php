@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\PhoneNumber;
 use App\Enums\NoticeType;
 use App\Enums\Role;
 use App\Enums\ScheduleRange;
@@ -39,6 +40,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'phone' => PhoneNumber::class,
             'roles' => AsEnumCollection::of(Role::class),
             'is_active' => 'boolean',
             'schedule_range' => ScheduleRange::class,

@@ -5,6 +5,7 @@ import InstructorSchedule from '../../components/InstructorSchedule.vue';
 import PrimaryButton from '../../components/PrimaryButton.vue';
 import TextInput from '../../components/TextInput.vue';
 import AppLayout from '../../layouts/AppLayout.vue';
+import { formatPhone } from '../../phone.js';
 
 const props = defineProps({
     profile: { type: Object, required: true },
@@ -16,7 +17,7 @@ const props = defineProps({
 
 const profileForm = useForm({
     name: props.profile.name,
-    phone: props.profile.phone ?? '',
+    phone: formatPhone(props.profile.phone),
 });
 
 const passwordForm = useForm({
@@ -56,7 +57,7 @@ const changePassword = () => {
                         />
                     </FormField>
 
-                    <FormField id="phone" label="Телефон" :error="profileForm.errors.phone">
+                    <FormField id="phone" label="Телефон" hint="Иностранный номер — с «+» и кодом страны." :error="profileForm.errors.phone">
                         <TextInput
                             id="phone"
                             v-model="profileForm.phone"

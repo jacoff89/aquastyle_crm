@@ -1,5 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { formatPhone } from '../phone.js';
 import FormField from './FormField.vue';
 import SelectInput from './SelectInput.vue';
 import TextInput from './TextInput.vue';
@@ -482,7 +483,7 @@ onBeforeUnmount(() => {
                             </a>
                             <span v-if="row.isDeleted" class="text-muted"> (удалён)</span>
                         </p>
-                        <p class="text-sm text-muted">{{ row.phone }}</p>
+                        <p class="text-sm text-muted">{{ formatPhone(row.phone) }}</p>
 
                         <p v-if="row.notes && notesEditing !== row.clientId" class="mt-1 whitespace-pre-line text-sm text-ink">
                             {{ row.notes }}
@@ -667,7 +668,7 @@ onBeforeUnmount(() => {
                         <ul class="mt-1.5 space-y-1.5">
                             <li v-for="duplicate in duplicates" :key="duplicate.id" class="flex flex-wrap items-center gap-x-3 gap-y-1">
                                 <span class="font-medium">{{ duplicate.name }}</span>
-                                <span class="text-amber-800">{{ duplicate.phone }}</span>
+                                <span class="text-amber-800">{{ formatPhone(duplicate.phone) }}</span>
                                 <button
                                     type="button"
                                     class="rounded-md border border-amber-400 bg-white px-2.5 py-1 font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-60"
@@ -714,7 +715,7 @@ onBeforeUnmount(() => {
                         <li v-for="client in results" :key="client.id" class="flex items-center justify-between gap-3 px-3 py-2 text-sm">
                             <span class="min-w-0">
                                 <span class="font-medium text-ink">{{ client.name }}</span>
-                                <span class="text-muted"> · {{ client.phone }}</span>
+                                <span class="text-muted"> · {{ formatPhone(client.phone) }}</span>
                             </span>
                             <span v-if="listedIds.has(client.id)" class="shrink-0 text-muted">Уже в списке</span>
                             <button

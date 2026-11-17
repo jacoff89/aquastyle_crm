@@ -61,7 +61,7 @@ class UserControllerTest extends TestCase
 
         $user = User::where('email', 'irina@aquastyle74.ru')->sole();
         $this->assertSame('Ирина Волкова', $user->name);
-        $this->assertSame('+7 912 345-67-89', $user->phone);
+        $this->assertSame('+79123456789', $user->phone);
         $this->assertEquals([Role::Instructor], $user->roles->all());
         $this->assertSame('#16a34a', $user->color);
         $this->assertTrue($user->is_active);
@@ -283,6 +283,23 @@ class UserControllerTest extends TestCase
             ->assertForbidden();
 
         $this->assertTrue($other->fresh()->isInstructor());
+    }
+
+    public function test_phone_is_saved_in_one_form_and_must_be_valid(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)
+            ->post('/settings/users', $this->validPayload(['phone' => '12-34']))
+            ->assertSessionHasErrors(['phone' => 'Введите телефон, например +7 912 345-67-89. Иностранный номер пишется с «+» и кодом страны.']);
+
+        $this->assertDatabaseMissing('users', ['email' => 'irina@aquastyle74.ru']);
+
+        $this->actingAs($admin)
+            ->post('/settings/users', $this->validPayload(['phone' => '8 912 345 67 89']))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('+79123456789', User::where('email', 'irina@aquastyle74.ru')->sole()->phone);
     }
 
     /**

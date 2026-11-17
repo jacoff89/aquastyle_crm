@@ -42,7 +42,7 @@ class ClientDuplicatePhoneTest extends TestCase
             ->getJson('/clients/duplicates?'.http_build_query(['phone' => $phone]))
             ->assertOk()
             ->assertExactJson(['duplicates' => [
-                ['id' => $existing->id, 'name' => 'Иванов Пётр', 'phone' => '8 912 345 67 89'],
+                ['id' => $existing->id, 'name' => 'Иванов Пётр', 'phone' => '+79123456789'],
             ]]);
     }
 

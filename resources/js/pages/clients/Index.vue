@@ -5,6 +5,7 @@ import AppIcon from '../../components/AppIcon.vue';
 import FormField from '../../components/FormField.vue';
 import TextInput from '../../components/TextInput.vue';
 import AppLayout from '../../layouts/AppLayout.vue';
+import { formatPhone } from '../../phone.js';
 
 const props = defineProps({
     clients: { type: Object, required: true },
@@ -144,7 +145,7 @@ const arrow = (key) => {
                                 <span v-if="client.isChild" class="sr-only">(дочерний клиент)</span>
                                 <span v-if="client.parentName" class="ml-2 text-xs text-muted">родитель: {{ client.parentName }}</span>
                             </td>
-                            <td class="text-muted sm:px-4 sm:py-3">{{ client.phone || (client.isChild ? '—' : '') }}</td>
+                            <td class="text-muted sm:px-4 sm:py-3">{{ formatPhone(client.phone) || (client.isChild ? '—' : '') }}</td>
                             <td class="hidden px-4 py-3 text-muted md:table-cell">{{ client.email || '—' }}</td>
                             <td class="hidden px-4 py-3 text-muted lg:table-cell">{{ client.createdAtLabel }}</td>
                         </tr>

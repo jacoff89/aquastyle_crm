@@ -3,6 +3,7 @@ import { Link, router } from '@inertiajs/vue3';
 import ClientBookings from '../../components/ClientBookings.vue';
 import ClientCommunications from '../../components/ClientCommunications.vue';
 import AppLayout from '../../layouts/AppLayout.vue';
+import { formatPhone } from '../../phone.js';
 
 const props = defineProps({
     client: { type: Object, required: true },
@@ -59,7 +60,7 @@ const destroy = () => {
                 <dl class="mt-4 grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
                     <div>
                         <dt class="text-muted">Телефон</dt>
-                        <dd class="mt-0.5 text-ink">{{ client.phone || '—' }}</dd>
+                        <dd class="mt-0.5 text-ink">{{ formatPhone(client.phone) || '—' }}</dd>
                     </div>
                     <div>
                         <dt class="text-muted">Email</dt>
@@ -87,7 +88,7 @@ const destroy = () => {
                 <ul class="mt-3 divide-y divide-line rounded-lg border border-line bg-white text-sm">
                     <li v-for="child in children" :key="child.id" class="px-4 py-3">
                         <Link :href="`/clients/${child.id}`" class="font-medium text-ink underline underline-offset-4">{{ child.name }}</Link>
-                        <span v-if="child.phone" class="text-muted"> · {{ child.phone }}</span>
+                        <span v-if="child.phone" class="text-muted"> · {{ formatPhone(child.phone) }}</span>
                     </li>
                 </ul>
             </section>

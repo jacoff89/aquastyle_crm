@@ -53,7 +53,7 @@ class EventClientControllerTest extends TestCase
             ->assertOk()
             ->assertJsonCount(4, 'data')
             ->assertJsonPath('data.0.name', 'Иванов Анна Сергеевна')
-            ->assertJsonPath('data.0.phone', '+7 912 000-00-03')
+            ->assertJsonPath('data.0.phone', '+79120000003')
             ->assertJsonPath('data.0.status', 'attended')
             ->assertJsonPath('data.0.statusLabel', 'Пришёл')
             ->assertJsonPath('data.0.isAttendanceMark', true)
