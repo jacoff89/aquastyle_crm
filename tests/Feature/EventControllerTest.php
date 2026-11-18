@@ -451,6 +451,33 @@ class EventControllerTest extends TestCase
             ->assertJsonPath('data.capacity', null);
     }
 
+    public function test_event_with_unmarked_clients_cannot_be_marked_done(): void
+    {
+        $event = Event::factory()->ledBy(User::factory()->create())->create();
+        EventClient::factory()->forEvent($event)->count(2)->create();
+        EventClient::factory()->forEvent($event)->attended()->create();
+
+        $this->actingAs($this->admin())
+            ->patchJson("/events/{$event->id}", $this->payloadOf($event, ['status' => 'done']))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['status' => 'Посещение не отмечено у клиентов: 2. Отметьте, пришли они или нет, прежде чем отмечать занятие проведённым.']);
+
+        $this->assertSame(EventStatus::Planned, $event->refresh()->status);
+    }
+
+    public function test_event_is_marked_done_once_every_client_is_marked(): void
+    {
+        $event = Event::factory()->ledBy(User::factory()->create())->create();
+        EventClient::factory()->forEvent($event)->attended()->create();
+        EventClient::factory()->forEvent($event)->noShow()->create();
+        EventClient::factory()->forEvent($event)->cancelled()->create();
+
+        $this->actingAs($this->admin())
+            ->patchJson("/events/{$event->id}", $this->payloadOf($event, ['status' => 'done']))
+            ->assertOk()
+            ->assertJsonPath('data.status', 'done');
+    }
+
     public function test_unknown_event_is_not_found(): void
     {
         $this->actingAs($this->admin())->patchJson('/events/999', $this->validPayload())->assertNotFound();

@@ -202,11 +202,17 @@ const tabClass = (name) =>
 
 /**
  * «Занятие проведено» сохраняет форму занятия со статусом «Проведено». Если сервер
- * её не принял, причина видна на первой вкладке — туда и возвращаем.
+ * её не принял, причина видна на первой вкладке — туда и возвращаем, а прежний
+ * статус возвращаем в форму.
  */
 const markDone = async () => {
+    const previousStatus = form.status;
     form.status = 'done';
     await submit(false);
+
+    if (form.hasErrors || failure.value) {
+        form.status = previousStatus;
+    }
 
     tab.value = 'details';
 };

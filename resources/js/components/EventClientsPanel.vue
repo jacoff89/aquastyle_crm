@@ -750,12 +750,15 @@ onBeforeUnmount(() => {
         <div v-if="event.status === 'planned' && event.canUpdate" class="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line px-6 py-4">
             <button
                 type="button"
-                class="rounded-md border border-line bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface"
+                class="rounded-md border border-line bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-white"
+                :disabled="unmarkedCount > 0"
                 @click="emit('mark-done')"
             >
                 Занятие проведено
             </button>
-            <p v-if="unmarkedCount" class="text-sm text-muted">Посещение не отмечено у клиентов: {{ unmarkedCount }}.</p>
+            <p v-if="unmarkedCount" class="text-sm text-muted">
+                Посещение не отмечено у клиентов: {{ unmarkedCount }}. Отметьте всех, чтобы провести занятие.
+            </p>
         </div>
     </div>
 </template>
