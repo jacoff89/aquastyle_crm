@@ -9,8 +9,19 @@ import { formatPhone } from '../../phone.js';
 
 const props = defineProps({
     clients: { type: Object, required: true },
+    statuses: { type: Array, required: true },
     filters: { type: Object, required: true },
 });
+
+/** Статус клиента (в том числе скрытый, если он уже назначен) и пустое значение — «без статуса». */
+const statusOptions = (client) =>
+    client.statusId !== null && !props.statuses.some((status) => status.id === client.statusId)
+        ? [...props.statuses, { id: client.statusId, name: `${client.statusName} (скрыт)` }]
+        : props.statuses;
+
+const changeStatus = (client, value) => {
+    router.patch(`/clients/${client.id}/status`, { client_status_id: value === '' ? null : Number(value) }, { preserveScroll: true, preserveState: true });
+};
 
 const search = ref(props.filters.search);
 const isSearching = computed(() => props.filters.search !== '');
@@ -150,10 +161,16 @@ const arrow = (key) => {
                             <td class="text-muted sm:px-4 sm:py-3">{{ formatPhone(client.phone) || (client.isChild ? '—' : '') }}</td>
                             <td class="hidden px-4 py-3 text-muted md:table-cell">{{ client.email || '—' }}</td>
                             <td class="hidden px-4 py-3 md:table-cell">
-                                <span v-if="client.statusName" class="inline-block rounded-full bg-sea-50 px-2 py-0.5 text-xs font-medium text-sea-700">
-                                    {{ client.statusName }}
-                                </span>
-                                <span v-else class="text-muted">—</span>
+                                <label :for="`client-status-${client.id}`" class="sr-only">Статус: {{ client.name }}</label>
+                                <select
+                                    :id="`client-status-${client.id}`"
+                                    :value="client.statusId ?? ''"
+                                    class="cursor-pointer rounded-full border-0 bg-sea-50 py-0.5 pr-7 pl-2 text-xs font-medium text-sea-700"
+                                    @change="changeStatus(client, $event.target.value)"
+                                >
+                                    <option value="">Без статуса</option>
+                                    <option v-for="status in statusOptions(client)" :key="status.id" :value="status.id">{{ status.name }}</option>
+                                </select>
                             </td>
                             <td class="hidden px-4 py-3 lg:table-cell">
                                 <ul v-if="client.certificationNames.length" class="flex flex-wrap gap-1">

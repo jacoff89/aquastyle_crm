@@ -86,6 +86,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('clients/duplicates', ClientDuplicateController::class)->name('clients.duplicates');
     Route::get('clients/search', ClientSearchController::class)->name('clients.search');
+    Route::patch('clients/{client}/status', [ClientController::class, 'updateStatus'])->name('clients.status.update');
     Route::resource('clients', ClientController::class);
     Route::post('clients/{client}/communications', [ClientCommunicationController::class, 'store'])->name('clients.communications.store');
     Route::patch('communications/{communication}', [ClientCommunicationController::class, 'update'])->name('communications.update');

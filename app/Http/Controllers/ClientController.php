@@ -12,6 +12,7 @@ use App\Events\Clients\ClientDeleted;
 use App\Events\Clients\ClientUpdated;
 use App\Http\Requests\Clients\StoreClientRequest;
 use App\Http\Requests\Clients\UpdateClientRequest;
+use App\Http\Requests\Clients\UpdateClientStatusRequest;
 use App\Models\Certification;
 use App\Models\Client;
 use App\Models\ClientStatus;
@@ -90,6 +91,8 @@ class ClientController extends Controller
                 'previousPageUrl' => $clients->previousPageUrl(),
                 'nextPageUrl' => $clients->nextPageUrl(),
             ],
+            'statuses' => ClientStatus::query()->ordered()->active()
+                ->get(['id', 'name'])->map(fn (ClientStatus $status): array => ['id' => $status->id, 'name' => $status->name])->values(),
             'filters' => [
                 'search' => $search,
                 'sort' => $sort,
@@ -191,6 +194,15 @@ class ClientController extends Controller
         return redirect()->route('clients.show', $client)->with('status', "Изменения сохранены: {$client->fullName()}.");
     }
 
+    public function updateStatus(UpdateClientStatusRequest $request, Client $client): RedirectResponse
+    {
+        $client->update($request->validated());
+
+        ClientUpdated::dispatchChanges($client, $request->user());
+
+        return back()->with('status', "Статус изменён: {$client->fullName()} — ".($client->status?->name ?? 'без статуса').'.');
+    }
+
     public function destroy(Request $request, Client $client): RedirectResponse
     {
         Gate::authorize('delete', $client);
@@ -216,6 +228,7 @@ class ClientController extends Controller
             'phone' => $client->phone,
             'email' => $client->email,
             'createdAtLabel' => $client->created_at->format('d.m.Y'),
+            'statusId' => $client->client_status_id,
             'statusName' => $client->status?->name,
             'certificationNames' => $client->certifications->pluck('name')->values(),
             'isChild' => $client->parent_id !== null,

@@ -175,4 +175,41 @@ class ClientTrainingTest extends TestCase
                 ->where('clients.data.0.statusName', null)
                 ->where('clients.data.1.statusName', 'Ждёт сертификат'));
     }
+
+    public function test_status_is_changed_and_cleared_from_the_client_list(): void
+    {
+        $status = ClientStatus::factory()->create(['name' => 'Open Water']);
+        $client = Client::factory()->create();
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->patch("/clients/{$client->id}/status", ['client_status_id' => $status->id])
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('status', "Статус изменён: {$client->fullName()} — Open Water.");
+        $this->assertSame($status->id, $client->fresh()->client_status_id);
+
+        $this->actingAs($user)->patch("/clients/{$client->id}/status", ['client_status_id' => null])->assertSessionHasNoErrors();
+        $this->assertNull($client->fresh()->client_status_id);
+    }
+
+    public function test_hidden_status_can_not_be_set_from_the_client_list(): void
+    {
+        $hiddenStatus = ClientStatus::factory()->hidden()->create();
+        $client = Client::factory()->create();
+
+        $this->actingAs(User::factory()->create())
+            ->patch("/clients/{$client->id}/status", ['client_status_id' => $hiddenStatus->id])
+            ->assertSessionHasErrors(['client_status_id' => 'Этот статус нельзя выбрать: его скрыли или удалили.']);
+        $this->assertNull($client->fresh()->client_status_id);
+    }
+
+    public function test_client_list_offers_visible_statuses(): void
+    {
+        $status = ClientStatus::factory()->create();
+        ClientStatus::factory()->hidden()->create();
+
+        $this->actingAs(User::factory()->create())
+            ->get('/clients')
+            ->assertInertia(fn (Assert $page) => $page->has('statuses', 1)->where('statuses.0.id', $status->id));
+    }
 }
