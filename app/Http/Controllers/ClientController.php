@@ -19,6 +19,7 @@ use App\Models\ClientStatus;
 use App\Models\Communication;
 use App\Models\Event;
 use App\Models\EventClient;
+use App\Models\Exercise;
 use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
@@ -144,6 +145,7 @@ class ClientController extends Controller
         Gate::authorize('view', $client);
 
         $now = now();
+        $history = $this->withExercises($this->pastBookings($client, $now)->limit(self::HISTORY_LIMIT)->get());
 
         return Inertia::render('clients/Show', [
             'client' => [
@@ -159,8 +161,9 @@ class ClientController extends Controller
             'canHaveChildren' => $client->parent_id === null,
             'canDelete' => $request->user()->can('delete', $client),
             'upcoming' => $this->withExercises($this->upcomingBookings($client, $now)->get())->map($this->bookingRow(...))->values(),
-            'history' => $this->withExercises($this->pastBookings($client, $now)->limit(self::HISTORY_LIMIT)->get())->map($this->bookingRow(...))->values(),
+            'history' => $history->map($this->bookingRow(...))->values(),
             'historyTotal' => $this->pastBookings($client, $now)->count(),
+            'remainingExercises' => $this->remainingExercises($history),
             'communications' => $client->communications()->with('creator')->latestFirst()->get()
                 ->map(fn (Communication $communication): array => $this->communicationRow($communication, $request->user()))->values(),
             'communicationChannels' => CommunicationChannel::options(),
@@ -330,6 +333,46 @@ class ClientController extends Controller
         (new Collection($events->pluck('pivot')))->load('exercises');
 
         return $events;
+    }
+
+    /**
+     * The exercises of the program that the client has still to do, shown on the latest class
+     * in the history that the client attended and whose type offers exercises. An exercise is
+     * done when it is attached to any of the client's bookings in the same program, the same
+     * way the event window counts it.
+     *
+     * @param  Collection<int, Event>  $history
+     * @return array{eventId: int, total: int, exercises: list<string>}|null
+     */
+    private function remainingExercises(Collection $history): ?array
+    {
+        $offeredByType = [];
+
+        foreach ($history as $event) {
+            if ($event->status === EventStatus::Cancelled || $event->pivot->status !== AttendanceStatus::Attended) {
+                continue;
+            }
+
+            $offered = $offeredByType[$event->event_type_id] ??= Exercise::query()->active()->forEventType($event->type)->ordered()->get();
+
+            if ($offered->isEmpty()) {
+                continue;
+            }
+
+            $booking = $event->pivot;
+            EventClient::loadExercisesDoneElsewhere(collect([$booking]), $event->type, $offered->modelKeys());
+            $doneIds = [...$booking->exerciseIdsDoneElsewhere, ...$booking->exercises->modelKeys()];
+
+            return [
+                'eventId' => $event->id,
+                'total' => $offered->count(),
+                'exercises' => $offered
+                    ->reject(fn (Exercise $exercise): bool => in_array($exercise->id, $doneIds, true))
+                    ->pluck('name')->values()->all(),
+            ];
+        }
+
+        return null;
     }
 
     /**

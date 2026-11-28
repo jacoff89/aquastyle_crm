@@ -14,6 +14,7 @@ const props = defineProps({
     upcoming: { type: Array, required: true },
     history: { type: Array, required: true },
     historyTotal: { type: Number, required: true },
+    remainingExercises: { type: Object, default: null },
     communications: { type: Array, required: true },
     communicationChannels: { type: Array, required: true },
     communicationStatuses: { type: Array, required: true },
@@ -137,6 +138,7 @@ const destroy = () => {
                 <div class="mt-3">
                     <ClientBookings
                         :rows="history"
+                        :remaining="remainingExercises"
                         label="История посещений клиента"
                         empty-title="Посещений пока нет"
                         empty-text="Здесь будут занятия, на которые клиент приходил или не пришёл."

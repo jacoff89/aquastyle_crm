@@ -119,7 +119,7 @@ class EventClientController extends Controller
 
         $offeredExercises = Exercise::query()->active()->forEventType($event->type)->ordered()->get();
 
-        EventClient::loadExercisesDoneElsewhere($bookings, $offeredExercises->modelKeys());
+        EventClient::loadExercisesDoneElsewhere($bookings, $event->type, $offeredExercises->modelKeys());
 
         return EventClientResource::collection($bookings)
             ->additional(['meta' => [

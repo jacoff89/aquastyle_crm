@@ -31,8 +31,8 @@ class EventClient extends Pivot
     public $timestamps = false;
 
     /**
-     * Exercises attached to the same client on their other events. Not stored:
-     * filled by loadExercisesDoneElsewhere() for the event window.
+     * Exercises attached to the same client on their other events of the same program. Not stored:
+     * filled by loadExercisesDoneElsewhere().
      *
      * @var list<int>
      */
@@ -87,13 +87,15 @@ class EventClient extends Pivot
 
     /**
      * Fills `exerciseIdsDoneElsewhere` of every booking with the exercises attached to the
-     * same client on their other events, in one query. Only the given exercises are counted:
-     * the ones offered for the event, so that the window marks nothing it does not offer.
+     * same client on their other events of the program of the given type (see
+     * EventType::programTypeIds()), in one query. Any booking counts, whatever its status.
+     * Only the given exercises are counted: the ones offered for the event, so that nothing
+     * is marked that the event does not offer.
      *
      * @param  Collection<int, EventClient>  $bookings
      * @param  list<int>  $exerciseIds
      */
-    public static function loadExercisesDoneElsewhere(Collection $bookings, array $exerciseIds): void
+    public static function loadExercisesDoneElsewhere(Collection $bookings, EventType $eventType, array $exerciseIds): void
     {
         if ($bookings->isEmpty()) {
             return;
@@ -101,6 +103,8 @@ class EventClient extends Pivot
 
         $attached = DB::table('event_client_exercise')
             ->join('event_client', 'event_client.id', '=', 'event_client_exercise.event_client_id')
+            ->join('events', 'events.id', '=', 'event_client.event_id')
+            ->whereIn('events.event_type_id', $eventType->programTypeIds())
             ->whereIn('event_client.client_id', $bookings->pluck('client_id')->unique())
             ->whereIn('event_client_exercise.exercise_id', $exerciseIds)
             ->select('event_client.id as booking_id', 'event_client.client_id', 'event_client_exercise.exercise_id')

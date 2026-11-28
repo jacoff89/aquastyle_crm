@@ -1,9 +1,12 @@
 <script setup>
 import { Link } from '@inertiajs/vue3';
+import RemainingExercises from './RemainingExercises.vue';
 
 defineProps({
     /** Занятия клиента: { eventId, title, dateLabel, timeLabel, location, leadInstructor, isEventCancelled, status, statusLabel, notes, eventNotes, exercises, calendarUrl }. */
     rows: { type: Array, required: true },
+    /** Что осталось пройти по программе: { eventId, total, exercises }; показывается у занятия с этим eventId. */
+    remaining: { type: Object, default: null },
     emptyTitle: { type: String, required: true },
     emptyText: { type: String, required: true },
     /** Подпись к списку для чтения с экрана. */
@@ -38,6 +41,7 @@ const statusClasses = {
                         {{ exercise }}
                     </li>
                 </ul>
+                <RemainingExercises v-if="remaining?.eventId === row.eventId" :exercises="remaining.exercises" :total="remaining.total" />
             </div>
             <span
                 class="shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium"

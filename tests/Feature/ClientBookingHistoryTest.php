@@ -202,6 +202,65 @@ class ClientBookingHistoryTest extends TestCase
                 ->where('history.0.exercises', ['Всплытие', 'Буксировка']));
     }
 
+    public function test_remaining_exercises_are_shown_on_the_latest_attended_class_of_a_program(): void
+    {
+        $client = Client::factory()->create();
+        $lead = User::factory()->create();
+        $pool = EventType::factory()->create();
+        $firstDive = EventType::factory()->create(['parent_id' => $pool->id]);
+        $secondDive = EventType::factory()->create(['parent_id' => $pool->id]);
+        $openWater = EventType::factory()->create();
+        $mask = Exercise::factory()->offeredFor($pool, $openWater)->create(['name' => 'Снятие маски']);
+        $ascent = Exercise::factory()->offeredFor($pool)->create(['name' => 'Всплытие']);
+        Exercise::factory()->offeredFor($pool)->create(['name' => 'Буй']);
+        Exercise::factory()->offeredFor($pool)->create(['name' => 'Судорога']);
+        Exercise::factory()->hidden()->offeredFor($pool)->create(['name' => 'Скрытое']);
+
+        $this->book($this->event($lead, $firstDive->id, '2026-11-01 10:00', '2026-11-01 11:00'), $client, AttendanceStatus::NoShow)->exercises()->attach($ascent);
+        $this->book($this->event($lead, $openWater->id, '2026-11-02 10:00', '2026-11-02 11:00'), $client, AttendanceStatus::Attended)->exercises()->attach($mask);
+        $anchor = $this->event($lead, $secondDive->id, '2026-11-03 10:00', '2026-11-03 11:00');
+        $this->book($anchor, $client, AttendanceStatus::Attended)->exercises()->attach(Exercise::query()->where('name', 'Буй')->value('id'));
+        $this->book($this->event($lead, EventType::factory()->create()->id, '2026-11-04 10:00', '2026-11-04 11:00'), $client, AttendanceStatus::Attended);
+        $this->book($this->event($lead, $secondDive->id, '2026-11-05 10:00', '2026-11-05 11:00'), $client, AttendanceStatus::Cancelled);
+        $this->book($this->event($lead, $secondDive->id, '2026-11-06 10:00', '2026-11-06 11:00', cancelled: true), $client, AttendanceStatus::Attended);
+
+        $this->actingAs($this->user(false))
+            ->get("/clients/{$client->id}")
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('history.3.eventId', $anchor->id)
+                ->where('remainingExercises', [
+                    'eventId' => $anchor->id,
+                    'total' => 4,
+                    'exercises' => ['Снятие маски', 'Судорога'],
+                ]));
+    }
+
+    public function test_remaining_exercises_are_empty_when_the_program_is_done(): void
+    {
+        $client = Client::factory()->create();
+        $type = EventType::factory()->create();
+        $event = $this->event(User::factory()->create(), $type->id, '2026-11-03 10:00', '2026-11-03 11:00');
+        $this->book($event, $client, AttendanceStatus::Attended)->exercises()->attach(Exercise::factory()->offeredFor($type)->create());
+
+        $this->actingAs($this->user())
+            ->get("/clients/{$client->id}")
+            ->assertInertia(fn (Assert $page) => $page->where('remainingExercises', ['eventId' => $event->id, 'total' => 1, 'exercises' => []]));
+    }
+
+    public function test_no_remaining_exercises_without_an_attended_class_that_offers_them(): void
+    {
+        $client = Client::factory()->create();
+        $lead = User::factory()->create();
+        $withExercises = EventType::factory()->create();
+        Exercise::factory()->offeredFor($withExercises)->create();
+        $this->book($this->event($lead, $withExercises->id, '2026-11-01 10:00', '2026-11-01 11:00'), $client, AttendanceStatus::NoShow);
+        $this->book($this->event($lead, EventType::factory()->create()->id, '2026-11-02 10:00', '2026-11-02 11:00'), $client, AttendanceStatus::Attended);
+
+        $this->actingAs($this->user())
+            ->get("/clients/{$client->id}")
+            ->assertInertia(fn (Assert $page) => $page->where('remainingExercises', null));
+    }
+
     private function event(User $lead, int $typeId, string $startsAt, string $endsAt, array $attributes = [], bool $cancelled = false): Event
     {
         $factory = Event::factory()->ledBy($lead)->at($startsAt, $endsAt);

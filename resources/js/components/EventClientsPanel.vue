@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { formatPhone } from '../phone.js';
 import FormField from './FormField.vue';
+import RemainingExercises from './RemainingExercises.vue';
 import SelectInput from './SelectInput.vue';
 import TextInput from './TextInput.vue';
 
@@ -148,6 +149,15 @@ const exerciseOptions = (row) => {
 
     return [...meta.value.exercises, ...attached].sort((a, b) => isDoneElsewhere(row, a) - isDoneElsewhere(row, b));
 };
+
+/**
+ * Упражнения программы, которые клиенту осталось пройти: предложенные для занятия,
+ * кроме отмеченных на этом занятии и на других занятиях той же программы.
+ */
+const remainingExercises = (row) =>
+    meta.value.exercises
+        .filter((exercise) => !isDoneElsewhere(row, exercise) && !row.exercises.some((attached) => attached.id === exercise.id))
+        .map((exercise) => exercise.name);
 
 const startExercises = (row) => {
     exercisesEditing.value = row.clientId;
@@ -515,6 +525,12 @@ onBeforeUnmount(() => {
                                 {{ exercise.name }}
                             </span>
                         </p>
+
+                        <RemainingExercises
+                            v-if="meta.exercises.length && exercisesEditing !== row.clientId"
+                            :exercises="remainingExercises(row)"
+                            :total="meta.exercises.length"
+                        />
 
                         <form v-if="exercisesEditing === row.clientId" class="mt-2 space-y-2" @submit.prevent="saveExercises(row)">
                             <fieldset>

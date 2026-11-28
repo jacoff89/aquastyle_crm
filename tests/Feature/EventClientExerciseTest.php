@@ -141,7 +141,7 @@ class EventClientExerciseTest extends TestCase
         $towing = Exercise::factory()->offeredFor($event->type)->create();
         $booking->exercises()->attach($towing);
 
-        $earlier = EventClient::factory()->forEvent(Event::factory()->ledBy(User::factory()->create())->create())->forClient($client)->create();
+        $earlier = EventClient::factory()->forEvent($this->eventOfType($event->type))->forClient($client)->create();
         $earlier->exercises()->attach([$ascent->id, $towing->id]);
 
         $stranger = EventClient::factory()->forEvent($event)->create();
@@ -210,13 +210,35 @@ class EventClientExerciseTest extends TestCase
         $offered = Exercise::factory()->offeredFor($event->type)->create();
         $notOffered = Exercise::factory()->create();
 
-        $earlier = EventClient::factory()->forEvent(Event::factory()->ledBy(User::factory()->create())->create())->forClient($client)->create();
+        $earlier = EventClient::factory()->forEvent($this->eventOfType($event->type))->forClient($client)->create();
         $earlier->exercises()->attach([$offered->id, $notOffered->id]);
 
         $this->actingAs($this->user(false))
             ->getJson("/events/{$event->id}/clients")
             ->assertOk()
             ->assertJsonPath('data.0.exerciseIdsDoneElsewhere', [$offered->id]);
+    }
+
+    public function test_exercises_count_as_done_only_within_the_program_of_the_event(): void
+    {
+        $pool = EventType::factory()->create();
+        $firstDive = EventType::factory()->create(['parent_id' => $pool->id]);
+        $secondDive = EventType::factory()->create(['parent_id' => $pool->id]);
+        $openWater = EventType::factory()->create();
+        $mask = Exercise::factory()->offeredFor($pool, $openWater)->create();
+        $ascent = Exercise::factory()->offeredFor($pool, $openWater)->create();
+        $buoy = Exercise::factory()->offeredFor($pool, $openWater)->create();
+
+        $client = Client::factory()->create();
+        $event = $this->eventOfType($secondDive);
+        EventClient::factory()->forEvent($event)->forClient($client)->create();
+        EventClient::factory()->forEvent($this->eventOfType($firstDive))->forClient($client)->create(['status' => 'no_show'])->exercises()->attach($mask);
+        EventClient::factory()->forEvent($this->eventOfType($pool))->forClient($client)->create()->exercises()->attach($ascent);
+        EventClient::factory()->forEvent($this->eventOfType($openWater))->forClient($client)->create()->exercises()->attach($buoy);
+
+        $response = $this->actingAs($this->user(false))->getJson("/events/{$event->id}/clients")->assertOk();
+
+        $this->assertEqualsCanonicalizing([$mask->id, $ascent->id], $response->json('data.0.exerciseIdsDoneElsewhere'));
     }
 
     public function test_guest_can_not_attach_exercises(): void
@@ -236,6 +258,11 @@ class EventClientExerciseTest extends TestCase
         $booking = EventClient::factory()->forEvent($event)->forClient($client)->create();
 
         return [$event, $client, $booking];
+    }
+
+    private function eventOfType(EventType $type): Event
+    {
+        return Event::factory()->ledBy(User::factory()->create())->create(['event_type_id' => $type->id]);
     }
 
     private function user(bool $isAdmin = true): User

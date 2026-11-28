@@ -136,6 +136,18 @@ class EventType extends Model
     }
 
     /**
+     * The ids of every type in the same training program: the top type and all its children.
+     * An exercise done on any of them counts as done for the whole program, while the same
+     * exercise in another program, e.g. open water after the pool, still has to be done there.
+     *
+     * @return list<int>
+     */
+    public function programTypeIds(): array
+    {
+        return ($this->parent ?? $this)->idsWithChildren();
+    }
+
+    /**
      * @param  Builder<EventType>  $query
      */
     #[Scope]
